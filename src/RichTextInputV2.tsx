@@ -26,6 +26,10 @@ function insertAt(str, index, substring) {
   return str.slice(0, i) + substring + str.slice(i);
 }
 
+function removeAt(str, index, strToRemove) {
+  return str.slice(0, index) + str.slice(index + strToRemove.length);
+}
+
 function findMatch(str, marker) {
   const regex = new RegExp(`\\${marker}(.+?)\\${marker}`);
   const match = regex.exec(str);
@@ -57,32 +61,48 @@ function diffStrings(prev, next) : Diff {
 
 const updateTokens = (tokens: Token[], diff: Diff) => {
     let updatedTokens = [...tokens];
-    let newMatch = "";
     let modifiedIndex = diff.start;
     const wholeString = tokens.reduce((acc, curr) => acc + curr.text, "");
 
     if (modifiedIndex >= wholeString.length) {
-        updatedTokens[updatedTokens.length - 1].text += diff.added;
-        return {
-            updatedTokens,
-            newMatch
-        };
+        if (diff.added.length > 0) {
+            updatedTokens[updatedTokens.length - 1].text += diff.added;
+            return {
+                updatedTokens,
+                plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+            };
+        }
+
+        if (diff.removed.length > 0) {
+            const lastTokenIndex = updatedTokens.length - 1;
+            updatedTokens[lastTokenIndex].text = updatedTokens[lastTokenIndex].text.slice(0, updatedTokens[lastTokenIndex].text.length - diff.removed.length);
+            return {
+                updatedTokens,
+                plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+            };
+        }
     }
 
     // First: find corresponding token
     for (const [index, token] of tokens.entries()) {
-        console.log("MODIFIED INDEX: ", modifiedIndex);
         // Find index to update
         if (modifiedIndex < token.text.length) {
-            console.log("TOKEN TO UPDATE: ", token);
             const tokenCopy = { ...token };
 
             if (diff.removed.length > 0) {
-                tokenCopy.text = token.text.slice(0, diff.start) + token.text.slice(diff.start + diff.removed.length, token.text.length - 1)
+                tokenCopy.text = removeAt(token.text, modifiedIndex, diff.removed);
             }
 
             if (diff.added.length > 0) {
                 tokenCopy.text = insertAt(token.text, modifiedIndex, diff.added);
+            }
+
+            if (tokenCopy.text.length === 0) {
+                updatedTokens.splice(index, 1);
+                return {
+                    updatedTokens,
+                    plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+                };
             }
 
             updatedTokens[index] = tokenCopy;
@@ -94,7 +114,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
     return {
         updatedTokens,
-        newMatch
+        plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
     };
 }
 
@@ -131,14 +151,10 @@ export default function RichTextInputV2() {
         console.log("NEXT TEXT: ", nextText);
         const diff = diffStrings(prevTextRef.current, nextText);
         console.log("DIFF", diff);
-        const { updatedTokens, newMatch} = updateTokens(tokens, diff);
+        const { updatedTokens, plain_text} = updateTokens(tokens, diff);
         setTokens([...updatedTokens]); 
         
-        if (newMatch) {
-            prevTextRef.current = nextText.replace(`*${newMatch}*`, newMatch);
-        } else {
-            prevTextRef.current = nextText;
-        }
+        prevTextRef.current = plain_text;
     }
 
     return (
