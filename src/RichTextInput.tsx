@@ -44,6 +44,12 @@ function insertAt(str, index, substring) {
   return str.slice(0, i) + substring + str.slice(i);
 }
 
+function replaceAt(str, index, substring, length) {
+  // Clamp index into valid boundaries
+  const i = Math.max(0, Math.min(index, str.length));
+  return str.slice(0, i) + substring + str.slice(i + length);
+}
+
 function removeSubstringAcrossTokens(tokens, removeStart, removeEnd) {
   let startToken = null;
   let startLocal = null;
@@ -165,6 +171,11 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
             const tokenCopy = { ...token };
 
             // Handle case where both add and remove are present?
+            if (diff.removed.length > 0 && diff.added.length > 0) {
+                tokenCopy.text = replaceAt(token.text, modifiedIndex, diff.added, diff.removed.length);
+                updatedTokens[index] = tokenCopy;
+                break;
+            }
 
             // Remove if theres something to remove
             if (diff.removed.length > 0) {
@@ -221,6 +232,7 @@ const splitTokens = (tokens, start, end, type ) => {
         }
         endIndex -= token.text.length;
     }
+
     // If same token, split
     if (updatedTokens.indexOf(startToken) === updatedTokens.indexOf(endToken)) {
         let firstToken = {
@@ -239,6 +251,40 @@ const splitTokens = (tokens, start, end, type ) => {
         }
 
         updatedTokens.splice(updatedTokens.indexOf(startToken), 1, firstToken, middleToken, lastToken);
+    }
+
+    if (updatedTokens.indexOf(startToken) !== updatedTokens.indexOf(endToken)) {
+        let firstToken = {
+            type: startToken.type,
+            text: startToken.text.slice(0, startIndex),
+        }
+
+        let secondToken = {
+            type: type,
+            text: startToken.text.slice(startIndex, startToken.text.length),
+        }
+
+        const middleTokens = updatedTokens.slice(updatedTokens.indexOf(startToken) + 1, updatedTokens.indexOf(endToken));
+        let updatedMiddleTokens = [...middleTokens];
+
+        for (const [index, token] of middleTokens.entries()) {
+            updatedMiddleTokens[index] = {
+                type: type,
+                text: token.text
+            }
+        }
+
+        let secondToLastToken = {
+            type: type,
+            text: endToken.text.slice(0, endIndex),
+        }
+
+        let lastToken = {
+            type: endToken.type,
+            text: endToken.text.slice(endIndex, endToken.text.length),
+        }
+
+        updatedTokens = updatedTokens.slice(0, updatedTokens.indexOf(startToken)).concat([firstToken, secondToken, ...updatedMiddleTokens, secondToLastToken, lastToken]).concat(updatedTokens.slice(updatedTokens.indexOf(endToken) + 1));
     }
 
     return {
@@ -270,17 +316,27 @@ export default function RichTextInput({ ref }) {
         toggleBold() {
             const { start, end } = selectionRef.current;
             const { result } = splitTokens(tokens, start, end, "bold");
-            console.log(result);
             setTokens([...result]);
             inputRef.current.setSelection(end, end);
         },
         toggleItalic() {
             const { start, end } = selectionRef.current;
             const { result } = splitTokens(tokens, start, end, "italic");
-            console.log(result);
             setTokens([...result]);
             inputRef.current.setSelection(end, end);
 
+        },
+        toggleLineThrough() {
+            const { start, end } = selectionRef.current;
+            const { result } = splitTokens(tokens, start, end, "lineThrough");
+            setTokens([...result]);
+            inputRef.current.setSelection(end, end);
+        },
+        toggleUnderline() {
+            const { start, end } = selectionRef.current;
+            const { result } = splitTokens(tokens, start, end, "underline");
+            setTokens([...result]);
+            inputRef.current.setSelection(end, end);
         }
     }))
 

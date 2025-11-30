@@ -23,6 +23,14 @@ export default function Toolbar({
         richTextInputRef.current.toggleItalic();
     }
 
+    const handleLineThrough = () => {
+        richTextInputRef.current.toggleLineThrough();
+    }
+
+    const handleUnderline = () => {
+        richTextInputRef.current.toggleUnderline();
+    }
+
     return (
         <View style={styles.toolbar}>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleBold}>
@@ -31,6 +39,14 @@ export default function Toolbar({
 
             <TouchableOpacity style={styles.toolbarButton} onPress={handleItalic}>
                 <Text>Italic</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.toolbarButton} onPress={handleLineThrough}>
+                <Text>Line Through</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.toolbarButton} onPress={handleUnderline}>
+                <Text>Underline</Text>
             </TouchableOpacity>
         </View>
     );
