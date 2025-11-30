@@ -113,12 +113,9 @@ function diffStrings(prev, next) : Diff {
   };
 }
 
-// Parses rich text into tokens
-const parseTokens = (text: string) => {
-    const tokens = [];
-}
 // Updates token content (add, remove, replace)
 // Note: need to support cross-token updates.
+// It's actually updating just the text of tokens
 const updateTokens = (tokens: Token[], diff: Diff) => {
     let updatedTokens = [...tokens];
     let modifiedIndex = diff.start;
@@ -188,6 +185,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
     };
 }
 
+// Updates annotations and splits tokens if necessary
 const splitTokens = (tokens, start, end, type ) => {
     let updatedTokens = [...tokens];
 
@@ -206,49 +204,58 @@ const splitTokens = (tokens, start, end, type ) => {
     let endIndex = end;
     let endToken;
     for (const [index, token] of updatedTokens.entries()) {
-        if (endIndex < token.text.length) {
+        // The - 1 is necessary
+        if (endIndex - 1 < token.text.length) {
             endToken = token;
             break;
         }
         endIndex -= token.text.length;
     }
 
+    const startTokenIndex = updatedTokens.indexOf(startToken);
+    const endTokenIndex = updatedTokens.indexOf(endToken);
     // If same token, split
-    if (updatedTokens.indexOf(startToken) === updatedTokens.indexOf(endToken)) {
+    if (startTokenIndex === endTokenIndex) {
+        
         let firstToken = {
             text: startToken.text.slice(0, startIndex),
             annotations: {
                 ...startToken.annotations,
-                [type]: false
+                [type]: startToken.annotations[type]
             }
         }
 
+        // Middle token is the selected text
         let middleToken = {
             text: startToken.text.slice(startIndex, endIndex),
             annotations: {
                 ...startToken.annotations,
-                [type]: true
+                [type]: !startToken.annotations[type]
             }
         }
 
         let lastToken = {
-            text: startToken.text.slice(endIndex, startToken.text.length),
+            text: startToken.text.slice(endIndex , startToken.text.length),
             annotations: {
                 ...startToken.annotations,
-                [type]: false
+                [type]: startToken.annotations[type]
             }
         }
 
-        updatedTokens.splice(updatedTokens.indexOf(startToken), 1, firstToken, middleToken, lastToken);
+        updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken);
     }
 
     // Cross-token selection
-    if (updatedTokens.indexOf(startToken) !== updatedTokens.indexOf(endToken)) {
+    if (startTokenIndex !== endTokenIndex) {
+        // Before splitting, check if all selected tokens already have the annotation
+        const selectedTokens = updatedTokens.slice(startTokenIndex, endTokenIndex + 1);
+        const allSelectedTokensHaveAnnotation = selectedTokens.every((token) => token.annotations[type] === true);
+
         let firstToken = {
             text: startToken.text.slice(0, startIndex),
             annotations: {
                 ...startToken.annotations,
-                [type]: false
+                [type]: startToken.annotations[type]
             }
         }
 
@@ -256,11 +263,11 @@ const splitTokens = (tokens, start, end, type ) => {
             text: startToken.text.slice(startIndex, startToken.text.length),
             annotations: {
                 ...startToken.annotations,
-                [type]: true
+                [type]: allSelectedTokensHaveAnnotation ? false : true
             }
         }
 
-        const middleTokens = updatedTokens.slice(updatedTokens.indexOf(startToken) + 1, updatedTokens.indexOf(endToken));
+        const middleTokens = updatedTokens.slice(startTokenIndex + 1, endTokenIndex);
         let updatedMiddleTokens = [...middleTokens];
 
         for (const [index, token] of middleTokens.entries()) {
@@ -268,7 +275,7 @@ const splitTokens = (tokens, start, end, type ) => {
                 text: token.text,
                 annotations: {
                     ...token.annotations,
-                    [type]: true
+                    [type]: allSelectedTokensHaveAnnotation ? false : true
                 }
             }
         }
@@ -277,7 +284,7 @@ const splitTokens = (tokens, start, end, type ) => {
             text: endToken.text.slice(0, endIndex),
             annotations: {
                 ...endToken.annotations,
-                [type]: true
+                [type]: allSelectedTokensHaveAnnotation ? false : true
             }
         }
 
@@ -285,15 +292,15 @@ const splitTokens = (tokens, start, end, type ) => {
             text: endToken.text.slice(endIndex, endToken.text.length),
             annotations: {
                 ...endToken.annotations,
-                [type]: false
+                [type]: endToken.annotations[type]
             }
         }
 
-        updatedTokens = updatedTokens.slice(0, updatedTokens.indexOf(startToken)).concat([firstToken, secondToken, ...updatedMiddleTokens, secondToLastToken, lastToken]).concat(updatedTokens.slice(updatedTokens.indexOf(endToken) + 1));
+        updatedTokens = updatedTokens.slice(0, startTokenIndex).concat([firstToken, secondToken, ...updatedMiddleTokens, secondToLastToken, lastToken]).concat(updatedTokens.slice(endTokenIndex + 1));
     }
 
     return {
-        result: updatedTokens
+        result: [...updatedTokens],
     }
 }
 
