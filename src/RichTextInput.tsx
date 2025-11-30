@@ -4,26 +4,56 @@ import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
 const exampleText = "Hello *bold* _italic_ lineThrough *underline* world!";
 const exampleTokens = [
     {
-        type: "text",
-        text: "Rich text input "
+        text: "Rich text input ",
+        annotations: {
+            bold: false,
+            italic: false,
+            lineThrough: false,
+            underline: false,
+            color: "black"
+        }
     },
     {
-        type: "bold",
-        text: "bold"
+        text: "bold",
+        annotations: {
+            bold: true,
+            italic: false,
+            lineThrough: false,
+            underline: false,
+            color: "black"
+        }
     },
     {
-        type: "italic",
-        text: " world!"
+        text: " world!",
+        annotations: {
+            bold: false,
+            italic: true,
+            lineThrough: false,
+            underline: false,
+            color: "black"
+        }
     },
     {
-        type: "text",
-        text: " "
+        text: " ",
+        annotations: {
+            bold: false,
+            italic: false,
+            lineThrough: false,
+            underline: false,
+            color: "black"
+        }
     }
 ];
 
 interface Token {
-    type: string;
     text: string;
+    annotations: {
+        bold: boolean;
+        italic: boolean;
+        lineThrough: boolean;
+        underline: boolean;
+        color: string;
+    }
 }
 
 interface Diff {
@@ -49,56 +79,6 @@ function replaceAt(str, index, substring, length) {
   const i = Math.max(0, Math.min(index, str.length));
   return str.slice(0, i) + substring + str.slice(i + length);
 }
-
-function removeSubstringAcrossTokens(tokens, removeStart, removeEnd) {
-  let startToken = null;
-  let startLocal = null;
-
-  let endToken = null;
-  let endLocal = null;
-
-  let index = 0;
-
-  // Find start and end positions
-  for (let t = 0; t < tokens.length; t++) {
-    const tokenLength = tokens[t].length;
-
-    // Start inside this token?
-    if (startToken === null && removeStart < index + tokenLength) {
-      startToken = t;
-      startLocal = removeStart - index;
-    }
-
-    // End inside this token?
-    if (endToken === null && removeEnd < index + tokenLength) {
-      endToken = t;
-      endLocal = removeEnd - index;
-    }
-
-    index += tokenLength;
-  }
-
-  // Case A: start and end in same token
-  if (startToken === endToken) {
-    tokens[startToken] =
-      tokens[startToken].slice(0, startLocal) +
-      tokens[startToken].slice(endLocal);
-    return tokens;
-  }
-
-  // Case B: spans multiple tokens
-  // Trim start token
-  tokens[startToken] = tokens[startToken].slice(0, startLocal);
-
-  // Trim end token
-  tokens[endToken] = tokens[endToken].slice(endLocal);
-
-  // Remove middle tokens
-  tokens.splice(startToken + 1, endToken - startToken - 1);
-
-  return tokens;
-}
-
 
 function removeAt(str, index, strToRemove) {
   return str.slice(0, index) + str.slice(index + strToRemove.length);
@@ -236,32 +216,48 @@ const splitTokens = (tokens, start, end, type ) => {
     // If same token, split
     if (updatedTokens.indexOf(startToken) === updatedTokens.indexOf(endToken)) {
         let firstToken = {
-            type: startToken.type,
             text: startToken.text.slice(0, startIndex),
+            annotations: {
+                ...startToken.annotations,
+                [type]: false
+            }
         }
 
         let middleToken = {
-            type: type,
             text: startToken.text.slice(startIndex, endIndex),
+            annotations: {
+                ...startToken.annotations,
+                [type]: true
+            }
         }
 
         let lastToken = {
-            type: startToken.type,
             text: startToken.text.slice(endIndex, startToken.text.length),
+            annotations: {
+                ...startToken.annotations,
+                [type]: false
+            }
         }
 
         updatedTokens.splice(updatedTokens.indexOf(startToken), 1, firstToken, middleToken, lastToken);
     }
 
+    // Cross-token selection
     if (updatedTokens.indexOf(startToken) !== updatedTokens.indexOf(endToken)) {
         let firstToken = {
-            type: startToken.type,
             text: startToken.text.slice(0, startIndex),
+            annotations: {
+                ...startToken.annotations,
+                [type]: false
+            }
         }
 
         let secondToken = {
-            type: type,
             text: startToken.text.slice(startIndex, startToken.text.length),
+            annotations: {
+                ...startToken.annotations,
+                [type]: true
+            }
         }
 
         const middleTokens = updatedTokens.slice(updatedTokens.indexOf(startToken) + 1, updatedTokens.indexOf(endToken));
@@ -269,19 +265,28 @@ const splitTokens = (tokens, start, end, type ) => {
 
         for (const [index, token] of middleTokens.entries()) {
             updatedMiddleTokens[index] = {
-                type: type,
-                text: token.text
+                text: token.text,
+                annotations: {
+                    ...token.annotations,
+                    [type]: true
+                }
             }
         }
 
         let secondToLastToken = {
-            type: type,
             text: endToken.text.slice(0, endIndex),
+            annotations: {
+                ...endToken.annotations,
+                [type]: true
+            }
         }
 
         let lastToken = {
-            type: endToken.type,
             text: endToken.text.slice(endIndex, endToken.text.length),
+            annotations: {
+                ...endToken.annotations,
+                [type]: false
+            }
         }
 
         updatedTokens = updatedTokens.slice(0, updatedTokens.indexOf(startToken)).concat([firstToken, secondToken, ...updatedMiddleTokens, secondToLastToken, lastToken]).concat(updatedTokens.slice(updatedTokens.indexOf(endToken) + 1));
@@ -352,7 +357,10 @@ export default function RichTextInput({ ref }) {
             >
                 {tokens.map((token, i) => {
                     return (
-                        <Text key={i} style={styles[token.type]}>{token.text}</Text>
+                        <Text key={i} style={[
+                            styles.text,
+                            ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null)
+                        ]}>{token.text}</Text>
                     )
                 })}
             </TextInput>
