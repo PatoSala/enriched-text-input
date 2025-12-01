@@ -31,6 +31,10 @@ export default function Toolbar({
         richTextInputRef.current.toggleUnderline();
     }
 
+    const handleComment = () => {
+        richTextInputRef.current.toggleComment();
+    }
+
     return (
         <View style={styles.toolbar}>
             <TouchableOpacity style={styles.toolbarButton} onPress={handleBold}>
@@ -47,6 +51,10 @@ export default function Toolbar({
 
             <TouchableOpacity style={styles.toolbarButton} onPress={handleUnderline}>
                 <Text>Underline</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.toolbarButton} onPress={handleComment}>
+                <Text>Comment</Text>
             </TouchableOpacity>
         </View>
     );

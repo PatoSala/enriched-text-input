@@ -188,6 +188,19 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 // Updates annotations and splits tokens if necessary
 const splitTokens = (tokens, start, end, type ) => {
     let updatedTokens = [...tokens];
+    let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
+
+    if (start === end && plain_text.length === end) {
+        console.log("Cursor at end");
+        updatedTokens.push({
+            text: "",
+            annotations: {
+                ...updatedTokens[updatedTokens.length - 1].annotations,
+                [type]: !updatedTokens[updatedTokens.length - 1].annotations[type]
+            }
+        });
+        return { result: updatedTokens };
+    }
 
     // Find token where start
     let startIndex = start;
@@ -214,6 +227,38 @@ const splitTokens = (tokens, start, end, type ) => {
 
     const startTokenIndex = updatedTokens.indexOf(startToken);
     const endTokenIndex = updatedTokens.indexOf(endToken);
+
+    // Not working
+    if (start === end) {
+        let firstToken = {
+            text: startToken.text.slice(0, startIndex),
+            annotations: {
+                ...startToken.annotations,
+                [type]: startToken.annotations[type]
+            }
+        }
+
+        // Middle token is the selected text
+        let middleToken = {
+            text: "",
+            annotations: {
+                ...startToken.annotations,
+                [type]: !startToken.annotations[type]
+            }
+        }
+
+        let lastToken = {
+            text: startToken.text.slice(endIndex , startToken.text.length),
+            annotations: {
+                ...startToken.annotations,
+                [type]: startToken.annotations[type]
+            }
+        }
+
+        updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken);
+        return { result: updatedTokens };
+    }
+
     // If same token, split
     if (startTokenIndex === endTokenIndex) {
         
@@ -242,11 +287,28 @@ const splitTokens = (tokens, start, end, type ) => {
             }
         }
 
+        if (firstToken.text.length === 0) {
+            updatedTokens.splice(startTokenIndex, 1, middleToken, lastToken);
+            return { result: updatedTokens };
+        }
+
+        if (lastToken.text.length === 0) {
+            updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken);
+            return { result: updatedTokens };
+        }
+
+        if (firstToken.text.length === 0 && lastToken.text.length === 0) {
+            updatedTokens.splice(startTokenIndex, 1, middleToken);
+            return { result: updatedTokens };
+        }
+        
         updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken);
+        return { result: updatedTokens };
     }
 
     // Cross-token selection
     if (startTokenIndex !== endTokenIndex) {
+        console.log("Cross-token selection");
         // Before splitting, check if all selected tokens already have the annotation
         const selectedTokens = updatedTokens.slice(startTokenIndex, endTokenIndex + 1);
         const allSelectedTokensHaveAnnotation = selectedTokens.every((token) => token.annotations[type] === true);
@@ -308,8 +370,9 @@ export default function RichTextInput({ ref }) {
     const inputRef = useRef<TextInput>(null);
     const selectionRef = useRef({ start: 0, end: 0 });
     const [tokens, setTokens] = useState(exampleTokens);
-
     const prevTextRef = useRef(tokens.map(t => t.text).join(""));
+
+    console.log(tokens);
 
     const handleSelectionChange = ({ nativeEvent }) => {
         selectionRef.current = nativeEvent.selection;
@@ -349,6 +412,12 @@ export default function RichTextInput({ ref }) {
             const { result } = splitTokens(tokens, start, end, "underline");
             setTokens([...result]);
             inputRef.current.setSelection(end, end);
+        },
+        toggleComment() {
+            const { start, end } = selectionRef.current;
+            const { result } = splitTokens(tokens, start, end, "comment");
+            setTokens([...result]);
+            inputRef.current.setSelection(end, end);
         }
     }))
 
@@ -366,7 +435,8 @@ export default function RichTextInput({ ref }) {
                     return (
                         <Text key={i} style={[
                             styles.text,
-                            ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null)
+                            ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null),
+                            token.annotations.underline && token.annotations.lineThrough ? styles.underlineLineThrough : null
                         ]}>{token.text}</Text>
                     )
                 })}
@@ -395,5 +465,13 @@ const styles = StyleSheet.create({
     },
     underline: {
         textDecorationLine: "underline",
+    },
+    comment: {
+        textDecorationLine: "underline",
+        textDecorationColor: "rgba(255, 203, 0, .35)",
+        backgroundColor: "rgba(255, 203, 0, .12)"
+    },
+    underlineLineThrough: {
+        textDecorationLine: "underline line-through"
     }
 });
