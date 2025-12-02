@@ -81,7 +81,7 @@ const parseTokens = (tokens) => {
 
 // Inserts a token at the given index
 // Only when start === end
-function insertToken(tokens, index, type, text="" ) {
+function insertToken(tokens: Token[], index: number, type: string, text = "" ) {
     const updatedTokens = [...tokens];
 
     let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
@@ -159,7 +159,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
     const plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
 
     // If we're at the end of the string
-    if (modifiedIndex >= plain_text.length) {
+    if (diff.start >= plain_text.length) {
         if (diff.added.length > 0) {
             updatedTokens[updatedTokens.length - 1].text += diff.added;
             return {
@@ -178,25 +178,89 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
         }
     }
 
+    // Find token where start
+    let startIndex = diff.start;
+    let startToken;
+
+    for (const token of updatedTokens) {
+        if (startIndex < token.text.length) {
+            startToken = token;
+            break;
+        }
+        startIndex -= token.text.length;
+    }
+    // Find token where end
+    let endIndex = diff.removed.length > diff.added.length ? diff.start + diff.removed.length : diff.start + diff.added.length;
+    let endToken;
+    for (const token of updatedTokens) {
+        // The - 1 is necessary
+        if (endIndex - 1 < token.text.length) {
+            endToken = token;
+            break;
+        }
+        endIndex -= token.text.length;
+    }
+
+    const startTokenIndex = updatedTokens.indexOf(startToken);
+    const endTokenIndex = updatedTokens.indexOf(endToken);
+    console.log("startTokenIndex", startTokenIndex);
+    console.log("endTokenIndex", endTokenIndex);
+
+    if (startTokenIndex === endTokenIndex) {
+        const tokenCopy = { ...startToken };
+
+        if (/* startIndex < tokenCopy.text.length &&  */diff.removed.length > 0 && diff.added.length > 0) {
+            tokenCopy.text = replaceAt(tokenCopy.text, startIndex, diff.added, diff.removed.length);
+                updatedTokens[startTokenIndex] = tokenCopy;
+                return {
+                    updatedTokens,
+                    // Plain text must be updated to prevent bad diffs
+                    plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+                };
+        }
+
+        if (/* startIndex < tokenCopy.text.length &&  */diff.removed.length > 0) {
+            tokenCopy.text = removeAt(tokenCopy.text, startIndex, diff.removed);
+            updatedTokens[startTokenIndex] = tokenCopy;
+            return {
+                updatedTokens,
+                plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+            };
+        }
+
+        if (startIndex <= tokenCopy.text.length && diff.added.length > 0) {
+            tokenCopy.text = insertAt(tokenCopy.text, startIndex, diff.added);
+            updatedTokens[startTokenIndex] = tokenCopy;
+            return {
+                updatedTokens,
+                plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+            };
+        }
+    }
+
+    if (startTokenIndex !== endTokenIndex) {
+        
+    }
+
     // First: find corresponding token
     for (const [index, token] of tokens.entries()) {
 
         /**
-         * If removing a character we need to check if character index is less than token length.
+         * When removing a character we need to check if character index is less than token length.
          * 
          */
        if (modifiedIndex < token.text.length && diff.removed.length > 0) {
             const tokenCopy = { ...token };
 
-            /* if (diff.removed.length > 0 && diff.added.length > 0) {
+            if (diff.removed.length > 0 && diff.added.length > 0) {
                 tokenCopy.text = replaceAt(token.text, modifiedIndex, diff.added, diff.removed.length);
                 updatedTokens[index] = tokenCopy;
                 break;
-            } */
+            }
 
            tokenCopy.text = removeAt(token.text, modifiedIndex, diff.removed);
 
-           if (tokenCopy.text.length === 0) {
+            if (tokenCopy.text.length === 0) {
                 updatedTokens.splice(index, 1);
                 break;
             }
@@ -214,13 +278,6 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
          */
         if (modifiedIndex <= token.text.length && diff.removed.length === 0) {
             const tokenCopy = { ...token };
-
-            // Handle case where both add and remove are present?
-            /* if (diff.removed.length > 0 && diff.added.length > 0) {
-                tokenCopy.text = replaceAt(token.text, modifiedIndex, diff.added, diff.removed.length);
-                updatedTokens[index] = tokenCopy;
-                break;
-            } */
 
             // Add if theres something to add
             if (diff.added.length > 0) {
@@ -243,7 +300,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
 // Updates annotations and splits tokens if necessary
 // Only when start !== end
-const splitTokens = (tokens, start, end, type ) => {
+const splitTokens = (tokens: Token[], start: number, end: number, type: string ) => {
     let updatedTokens = [...tokens];
 
     // Find token where start
@@ -463,6 +520,7 @@ export default function RichTextInput({ ref }) {
 
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
+
 
         if (diff.start === toSplit.start && diff.start === toSplit.end && diff.added.length > 0 && toSplit.type) {
             const { result } = insertToken(tokens, diff.start, toSplit.type, diff.added);
