@@ -110,10 +110,10 @@ function diffStrings(prev, next) : Diff {
 const updateTokens = (tokens: Token[], diff: Diff) => {
     let updatedTokens = [...tokens];
     let modifiedIndex = diff.start;
-    const wholeString = tokens.reduce((acc, curr) => acc + curr.text, "");
+    const plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
 
     // If we're at the end of the string
-    if (modifiedIndex >= wholeString.length) {
+    if (modifiedIndex >= plain_text.length) {
         if (diff.added.length > 0) {
             updatedTokens[updatedTokens.length - 1].text += diff.added;
             return {
@@ -135,9 +135,18 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
     // First: find corresponding token
     for (const [index, token] of tokens.entries()) {
 
-        // It removing a character we need to check if character index is less than token length
+        /**
+         * If removing a character we need to check if character index is less than token length.
+         * 
+         */
        if (modifiedIndex < token.text.length && diff.removed.length > 0) {
             const tokenCopy = { ...token };
+
+            /* if (diff.removed.length > 0 && diff.added.length > 0) {
+                tokenCopy.text = replaceAt(token.text, modifiedIndex, diff.added, diff.removed.length);
+                updatedTokens[index] = tokenCopy;
+                break;
+            } */
 
            tokenCopy.text = removeAt(token.text, modifiedIndex, diff.removed);
 
@@ -420,31 +429,31 @@ export default function RichTextInput({ ref }) {
             const { start, end } = selectionRef.current;
             const { result } = splitTokens(tokens, start, end, "bold");
             setTokens([...result]);
-            inputRef.current.setSelection(end, end);
+            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         toggleItalic() {
             const { start, end } = selectionRef.current;
             const { result } = splitTokens(tokens, start, end, "italic");
             setTokens([...result]);
-            inputRef.current.setSelection(end, end);
+            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         toggleLineThrough() {
             const { start, end } = selectionRef.current;
             const { result } = splitTokens(tokens, start, end, "lineThrough");
             setTokens([...result]);
-            inputRef.current.setSelection(end, end);
+            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         toggleUnderline() {
             const { start, end } = selectionRef.current;
             const { result } = splitTokens(tokens, start, end, "underline");
             setTokens([...result]);
-            inputRef.current.setSelection(end, end);
+            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         toggleComment() {
             const { start, end } = selectionRef.current;
             const { result } = splitTokens(tokens, start, end, "comment");
             setTokens([...result]);
-            inputRef.current.setSelection(end, end);
+            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         setValue(value: string) {
             // To keep styles, parsing should be done before setting value
