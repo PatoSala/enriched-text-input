@@ -62,8 +62,11 @@ export default function Toolbar({
                 <FontAwesome6 name="comment-alt" size={16} color="black" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.toolbarButton} onPress={handleKeyboardDismiss}>
+            <TouchableOpacity style={[styles.toolbarButton, styles.keyboardDown]} onPress={handleKeyboardDismiss}>
                 <FontAwesome6 name="keyboard" size={16} color="black" />
+                <View style={styles.keyboardArrowContainer}>
+                    <FontAwesome6 name="chevron-down" size={10} color="black"/>
+                </View>
             </TouchableOpacity>
         </View>
     );
@@ -85,5 +88,15 @@ const styles = StyleSheet.create({
         display: "flex",
         justifyContent: "center",
         alignItems: "center"
+    },
+    keyboardDown: {
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+
+    },
+    keyboardArrowContainer: {
+        position: "absolute",
+        bottom: 10
     }
 });

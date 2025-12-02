@@ -69,13 +69,25 @@ function diffStrings(prev, next) : Diff {
   };
 }
 
+// Returns an array of tokens
+const parseString = (text: string) => {
+    
+}
+
+// Returns a rich text string
+const parseTokens = (tokens) => {
+    
+}
+
+// Inserts a token at the given index
+// Only when start === end
 function insertToken(tokens, index, type, text="" ) {
     const updatedTokens = [...tokens];
 
     let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
 
+    // If cursor is at the end
     if (plain_text.length === index) {
-        console.log("Cursor at end");
         updatedTokens.push({
             text: text,
             annotations: {
@@ -90,8 +102,8 @@ function insertToken(tokens, index, type, text="" ) {
     let startIndex = index;
     let startToken;
 
-    for (const [index, token] of updatedTokens.entries()) {
-        if (startIndex < token.text.length) {
+    for (const token of updatedTokens) {
+        if (startIndex <= token.text.length) {
             startToken = token;
             break;
         }
@@ -125,27 +137,16 @@ function insertToken(tokens, index, type, text="" ) {
         }
     }
 
-    // Note: the following conditionals are to prevent empty tokens.
-    // It would be ideal if instead of catching empty tokens we could write the correct insert logic to prevent them.
-    if (firstToken.text.length === 0 && lastToken.text.length === 0) {
-        updatedTokens.splice(startTokenIndex, 1, middleToken);
-        return { result: updatedTokens };
-    }
-
-    if (firstToken.text.length === 0) {
-        updatedTokens.splice(startTokenIndex, 1, middleToken, lastToken);
-        return { result: updatedTokens };
-    }
-
-    if (lastToken.text.length === 0) {
-        updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken);
-        return { result: updatedTokens };
-    }
+    /**
+     * Note: the following conditionals are to prevent empty tokens.
+     * It would be ideal if instead of catching empty tokens we could write the correct insert logic to prevent them.
+     * Maybe use a filter instead?
+     */
     
     updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken);
     
     return {
-        result: updatedTokens
+        result: updatedTokens.filter(token => token.text.length > 0)
     };
 }
 
@@ -241,7 +242,8 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 }
 
 // Updates annotations and splits tokens if necessary
-const splitTokens = (tokens, start, end, type, text="" ) => {
+// Only when start !== end
+const splitTokens = (tokens, start, end, type ) => {
     let updatedTokens = [...tokens];
 
     // Find token where start
@@ -404,6 +406,8 @@ const splitTokens = (tokens, start, end, type, text="" ) => {
     }
 }
 
+
+
 export default function RichTextInput({ ref }) {
     const inputRef = useRef<TextInput>(null);
     const selectionRef = useRef({ start: 0, end: 0 });
@@ -418,6 +422,7 @@ export default function RichTextInput({ ref }) {
             comment: false
         }
     }]);
+
     const prevTextRef = useRef(tokens.map(t => t.text).join(""));
 
     const [toSplit, setToSplit] = useState({
@@ -441,7 +446,6 @@ export default function RichTextInput({ ref }) {
             prevTextRef.current = plain_text;
             return;
         }
-
 
         const { updatedTokens, plain_text} = updateTokens(tokens, diff);
         
