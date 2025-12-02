@@ -1,40 +1,6 @@
 import { useState, useImperativeHandle, useRef, useEffect } from "react";
 import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
 
-const exampleText = "Hello *bold* _italic_ lineThrough *underline* world!";
-const exampleTokens = [
-    {
-        text: "Rich text input ",
-        annotations: {
-            bold: false,
-            italic: false,
-            lineThrough: false,
-            underline: false,
-            color: "black"
-        }
-    },
-    {
-        text: "bold",
-        annotations: {
-            bold: true,
-            italic: false,
-            lineThrough: false,
-            underline: false,
-            color: "black"
-        }
-    },
-    {
-        text: " world!",
-        annotations: {
-            bold: false,
-            italic: true,
-            lineThrough: false,
-            underline: false,
-            color: "black"
-        }
-    }
-];
-
 interface Token {
     text: string;
     annotations: {
@@ -61,7 +27,6 @@ const PATTERNS = [
 function insertAt(str, index, substring) {
   // Clamp index into valid boundaries
   const i = Math.max(0, Math.min(index, str.length));
-  console.log(i);
   return str.slice(0, i) + substring + str.slice(i);
 }
 
@@ -105,8 +70,22 @@ function diffStrings(prev, next) : Diff {
 }
 
 function insertToken(tokens, index, type, text="" ) {
-    let modifiedIndex = index;
     const updatedTokens = [...tokens];
+
+    let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
+
+    if (plain_text.length === index) {
+        console.log("Cursor at end");
+        updatedTokens.push({
+            text: text,
+            annotations: {
+                ...updatedTokens[updatedTokens.length - 1].annotations,
+                [type]: !updatedTokens[updatedTokens.length - 1].annotations[type]
+            }
+        });
+
+        return { result: updatedTokens.filter(token => token.text.length > 0) };
+    }
 
     let startIndex = index;
     let startToken;
@@ -118,17 +97,6 @@ function insertToken(tokens, index, type, text="" ) {
         }
         startIndex -= token.text.length;
     }
-    /* // Find token where end
-    let endIndex = index;
-    let endToken;
-    for (const [index, token] of updatedTokens.entries()) {
-        // The - 1 is necessary
-        if (endIndex - 1 < token.text.length) {
-            endToken = token;
-            break;
-        }
-        endIndex -= token.text.length;
-    } */
 
     const startTokenIndex = updatedTokens.indexOf(startToken);
 
@@ -158,35 +126,27 @@ function insertToken(tokens, index, type, text="" ) {
     }
 
     // Note: the following conditionals are to prevent empty tokens.
-        // It would be ideal if instead of catching empty tokens we could write the correct insert logic to prevent them.
-        if (firstToken.text.length === 0 && lastToken.text.length === 0) {
-            updatedTokens.splice(startTokenIndex, 1, middleToken);
-            return { result: updatedTokens };
-        }
+    // It would be ideal if instead of catching empty tokens we could write the correct insert logic to prevent them.
+    if (firstToken.text.length === 0 && lastToken.text.length === 0) {
+        updatedTokens.splice(startTokenIndex, 1, middleToken);
+        return { result: updatedTokens };
+    }
 
-        if (firstToken.text.length === 0) {
-            updatedTokens.splice(startTokenIndex, 1, middleToken, lastToken);
-            return { result: updatedTokens };
-        }
+    if (firstToken.text.length === 0) {
+        updatedTokens.splice(startTokenIndex, 1, middleToken, lastToken);
+        return { result: updatedTokens };
+    }
 
-        if (lastToken.text.length === 0) {
-            updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken);
-            return { result: updatedTokens };
-        }
-        
-        updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken);
-        return {
-            result: updatedTokens,
-            children: updatedTokens.map((token, i) => {
-                return (
-                    <Text key={i} style={[
-                        styles.text,
-                        ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null),
-                        token.annotations.underline && token.annotations.lineThrough ? styles.underlineLineThrough : null
-                    ]}>{token.text}</Text>
-                )
-            })
-        };
+    if (lastToken.text.length === 0) {
+        updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken);
+        return { result: updatedTokens };
+    }
+    
+    updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken);
+    
+    return {
+        result: updatedTokens
+    };
 }
 
 // Updates token content (add, remove, replace)
@@ -283,19 +243,6 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 // Updates annotations and splits tokens if necessary
 const splitTokens = (tokens, start, end, type, text="" ) => {
     let updatedTokens = [...tokens];
-    let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
-
-    if (start === end && plain_text.length === end) {
-        console.log("Cursor at end");
-        updatedTokens.push({
-            text: "",
-            annotations: {
-                ...updatedTokens[updatedTokens.length - 1].annotations,
-                [type]: !updatedTokens[updatedTokens.length - 1].annotations[type]
-            }
-        });
-        return { result: updatedTokens };
-    }
 
     // Find token where start
     let startIndex = start;
@@ -460,17 +407,25 @@ const splitTokens = (tokens, start, end, type, text="" ) => {
 export default function RichTextInput({ ref }) {
     const inputRef = useRef<TextInput>(null);
     const selectionRef = useRef({ start: 0, end: 0 });
-    const [tokens, setTokens] = useState(exampleTokens);
+    const [tokens, setTokens] = useState([{
+        text: "",
+        annotations: {
+            bold: false,
+            italic: false,
+            lineThrough: false,
+            underline: false,
+            color: "black",
+            comment: false
+        }
+    }]);
     const prevTextRef = useRef(tokens.map(t => t.text).join(""));
-
-    console.log(tokens);
 
     const [toSplit, setToSplit] = useState({
         start: 0,
         end: 0,
         type: null
     });
-    console.log(toSplit);
+
     const handleSelectionChange = ({ nativeEvent }) => {
         selectionRef.current = nativeEvent.selection;
     }
@@ -478,7 +433,7 @@ export default function RichTextInput({ ref }) {
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
 
-        if (diff.start === toSplit.start && diff.start === toSplit.end && diff.added.length > 0) {
+        if (diff.start === toSplit.start && diff.start === toSplit.end && diff.added.length > 0 && toSplit.type) {
             const { result } = insertToken(tokens, diff.start, toSplit.type, diff.added);
             const plain_text = result.map(t => t.text).join("");
             setTokens([...result]);
@@ -498,7 +453,12 @@ export default function RichTextInput({ ref }) {
         toggleBold() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && end < tokens.reduce((acc, curr) => acc + curr.text.length, 0)) {
+            if (start === end && toSplit.type === "bold") {
+                setToSplit({ start: 0, end: 0, type: null });
+                return;
+            }
+
+            if (start === end) {
                 setToSplit({ start, end, type: "bold" });
                 return;
             }
@@ -510,7 +470,12 @@ export default function RichTextInput({ ref }) {
         toggleItalic() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && end < tokens.reduce((acc, curr) => acc + curr.text.length, 0)) {
+            if (start === end && toSplit.type === "italic") {
+                setToSplit({ start: 0, end: 0, type: null });
+                return;
+            }
+
+            if (start === end) {
                 setToSplit({ start, end, type: "italic" });
                 return;
             }
@@ -522,7 +487,12 @@ export default function RichTextInput({ ref }) {
         toggleLineThrough() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && end < tokens.reduce((acc, curr) => acc + curr.text.length, 0)) {
+            if (start === end && toSplit.type === "lineThrough") {
+                setToSplit({ start: 0, end: 0, type: null });
+                return;
+            }
+
+            if (start === end) {
                 setToSplit({ start, end, type: "lineThrough" });
                 return;
             }
@@ -534,7 +504,12 @@ export default function RichTextInput({ ref }) {
         toggleUnderline() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && end < tokens.reduce((acc, curr) => acc + curr.text.length, 0)) {
+            if (start === end && toSplit.type === "underline") {
+                setToSplit({ start: 0, end: 0, type: null });
+                return;
+            }
+
+            if (start === end) {
                 setToSplit({ start, end, type: "underline" });
                 return;
             }
@@ -546,7 +521,12 @@ export default function RichTextInput({ ref }) {
         toggleComment() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && end < tokens.reduce((acc, curr) => acc + curr.text.length, 0)) {
+            if (start === end && toSplit.type === "comment") {
+                setToSplit({ start: 0, end: 0, type: null });
+                return;
+            }
+
+            if (start === end) {
                 setToSplit({ start, end, type: "comment" });
                 return;
             }
@@ -566,6 +546,8 @@ export default function RichTextInput({ ref }) {
             <TextInput
                 multiline={true}
                 ref={inputRef}
+                autoCorrect={false}
+                autoComplete="off"
                 style={styles.textInput}
                 placeholder="Rich text input"
                 onSelectionChange={handleSelectionChange}
@@ -575,8 +557,8 @@ export default function RichTextInput({ ref }) {
                     return (
                         <Text key={i} style={[
                             styles.text,
-                            ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null),
-                            token.annotations.underline && token.annotations.lineThrough ? styles.underlineLineThrough : null
+                            ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null).filter(Boolean),
+                            token.annotations.underline && token.annotations.lineThrough && styles.underlineLineThrough
                         ]}>{token.text}</Text>
                     )
                 })}
