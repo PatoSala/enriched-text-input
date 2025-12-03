@@ -161,8 +161,9 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
     if (diff.start >= plain_text.length) {
         if (diff.added.length > 0) {
             updatedTokens[updatedTokens.length - 1].text += diff.added;
+
             return {
-                updatedTokens,
+                updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                 plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
             };
         }
@@ -170,8 +171,9 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
         if (diff.removed.length > 0) {
             const lastTokenIndex = updatedTokens.length - 1;
             updatedTokens[lastTokenIndex].text = updatedTokens[lastTokenIndex].text.slice(0, updatedTokens[lastTokenIndex].text.length - diff.removed.length);
+            
             return {
-                updatedTokens,
+                updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                 plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
             };
         }
@@ -205,14 +207,13 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
     // Same token
     if (startTokenIndex === endTokenIndex) {
-        console.log("SAME TOKEN");
         const tokenCopy = { ...startToken };
 
         if (diff.removed.length > 0 && diff.added.length > 0) {
             tokenCopy.text = replaceAt(tokenCopy.text, startIndex, diff.added, diff.removed.length);
                 updatedTokens[startTokenIndex] = tokenCopy;
                 return {
-                    updatedTokens,
+                    updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                     // Plain text must be updated to prevent bad diffs
                     plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
                 };
@@ -222,31 +223,53 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
             tokenCopy.text = removeAt(tokenCopy.text, startIndex, diff.removed);
             updatedTokens[startTokenIndex] = tokenCopy;
             return {
-                updatedTokens,
+                updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                 plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
             };
         }
 
         if (diff.added.length > 0) {
-            console.log("START INDEX", startIndex);
             tokenCopy.text = insertAt(tokenCopy.text, startIndex, diff.added);
             updatedTokens[startTokenIndex] = tokenCopy;
             return {
-                updatedTokens,
+                updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                 plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
             };
         }
     }
 
-    console.log("DIFF", diff);
-    console.log("START TOKEN", startToken);
-    console.log("END TOKEN", endToken);
-
     // Cross-token
     if (startTokenIndex !== endTokenIndex) {
-        console.log("CROSS TOKEN");
         const selectedTokens = updatedTokens.slice(startTokenIndex, endTokenIndex + 1);
+        
+        if (diff.added.length > 0) {
+            const firstToken = selectedTokens[0];
+            const lastToken = selectedTokens[selectedTokens.length - 1];
 
+            firstToken.text = firstToken.text.slice(0, startIndex) + diff.added;
+            lastToken.text = lastToken.text.slice(endIndex);
+            updatedTokens[startTokenIndex] = firstToken;
+            updatedTokens[endTokenIndex] = lastToken;
+
+            if (selectedTokens.length > 2) {
+                updatedTokens.splice(startTokenIndex + 1, selectedTokens.length - 2);
+                return {
+                    updatedTokens: updatedTokens.filter(token => token.text.length > 0),
+                    plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+                }
+            }
+
+            return {
+                updatedTokens: updatedTokens.filter(token => token.text.length > 0),
+                plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+            }
+        }
+
+        /**
+         * Remove:
+         * - For more than two tokens, works.
+         * - For two tokens, does not work properly.
+         */
         if (diff.removed.length > 0) {
             const firstToken = selectedTokens[0];
             const lastToken = selectedTokens[selectedTokens.length - 1];
@@ -260,90 +283,23 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
             if (selectedTokens.length > 2) {
                 updatedTokens.splice(startTokenIndex + 1, selectedTokens.length - 2);
                 return {
-                    updatedTokens,
+                    updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                     plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
                 }
             }
 
             return {
-                updatedTokens,
+                updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                 plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
             }
 
         }
-
-        if (diff.added.length > 0) {
-            const firstToken = selectedTokens[0];
-            const lastToken = selectedTokens[selectedTokens.length - 1];
-
-            firstToken.text = insertAt(firstToken.text, startIndex, diff.added);
-            lastToken.text = lastToken.text.slice(endIndex);
-            updatedTokens[startTokenIndex] = firstToken;
-            updatedTokens[endTokenIndex] = lastToken;
-
-            if (selectedTokens.length > 2) {
-                updatedTokens.splice(startTokenIndex + 1, selectedTokens.length - 2);
-                return {
-                    updatedTokens,
-                    plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
-                }
-            }
-
-            return {
-                updatedTokens,
-                plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
-            }
-        }
-
 
         return {
-            updatedTokens,
+            updatedTokens: updatedTokens.filter(token => token.text.length > 0),
             plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, "")
         };
     }
-
-    // First: find corresponding token
-    /* for (const [index, token] of tokens.entries()) {
-       if (modifiedIndex < token.text.length && diff.removed.length > 0) {
-            const tokenCopy = { ...token };
-
-            if (diff.removed.length > 0 && diff.added.length > 0) {
-                tokenCopy.text = replaceAt(token.text, modifiedIndex, diff.added, diff.removed.length);
-                updatedTokens[index] = tokenCopy;
-                break;
-            }
-
-           tokenCopy.text = removeAt(token.text, modifiedIndex, diff.removed);
-
-            if (tokenCopy.text.length === 0) {
-                updatedTokens.splice(index, 1);
-                break;
-            }
-
-            updatedTokens[index] = tokenCopy;
-            break;
-       }
-
-        if (modifiedIndex <= token.text.length && diff.removed.length === 0) {
-            const tokenCopy = { ...token };
-
-            // Add if theres something to add
-            if (diff.added.length > 0) {
-                tokenCopy.text = insertAt(token.text, modifiedIndex, diff.added);
-            }
-
-            updatedTokens[index] = tokenCopy;
-            break;
-        }
-
-        modifiedIndex -= token.text.length;
-    }
-
-    return {
-        updatedTokens,
-        // Plain text must be updated to prevent bad diffs
-        plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
-    }; */
 }
 
 // Updates annotations and splits tokens if necessary
@@ -548,13 +504,28 @@ export default function RichTextInput({ ref }) {
             italic: false,
             lineThrough: false,
             underline: false,
-            color: "black",
-            comment: false
+            color: "black"
         }
     }]);
-    console.log(tokens);
+
+    useEffect(() => {
+        if (tokens.length === 0) {
+            setTokens([{
+                text: "",
+                annotations: {
+                    bold: false,
+                    italic: false,
+                    lineThrough: false,
+                    underline: false,
+                    color: "black"
+                }
+            }])
+        }
+    }, [tokens]);
+
     const prevTextRef = useRef(tokens.map(t => t.text).join(""));
 
+    // Find a better name
     const [toSplit, setToSplit] = useState({
         start: 0,
         end: 0,
@@ -567,7 +538,6 @@ export default function RichTextInput({ ref }) {
 
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
-
 
         if (diff.start === toSplit.start && diff.start === toSplit.end && diff.added.length > 0 && toSplit.type) {
             const { result } = insertToken(tokens, diff.start, toSplit.type, diff.added);
@@ -653,23 +623,6 @@ export default function RichTextInput({ ref }) {
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
-        toggleComment() {
-            const { start, end } = selectionRef.current;
-
-            if (start === end && toSplit.type === "comment") {
-                setToSplit({ start: 0, end: 0, type: null });
-                return;
-            }
-
-            if (start === end) {
-                setToSplit({ start, end, type: "comment" });
-                return;
-            }
-
-            const { result } = splitTokens(tokens, start, end, "comment");
-            setTokens([...concatTokens(result)]);
-            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
-        },
         setValue(value: string) {
             // To keep styles, parsing should be done before setting value
 
@@ -694,7 +647,9 @@ export default function RichTextInput({ ref }) {
                             styles.text,
                             ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null).filter(Boolean),
                             token.annotations.underline && token.annotations.lineThrough && styles.underlineLineThrough
-                        ]}>{token.text}</Text>
+                        ]}>
+                            {token.text}
+                        </Text>
                     )
                 })}
             </TextInput>

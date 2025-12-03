@@ -32,10 +32,6 @@ export default function Toolbar({
         richTextInputRef.current.toggleUnderline();
     }
 
-    const handleComment = () => {
-        richTextInputRef.current.toggleComment();
-    }
-
     const handleKeyboardDismiss = () => {
         Keyboard.dismiss();
     }
@@ -56,10 +52,6 @@ export default function Toolbar({
 
             <TouchableOpacity style={styles.toolbarButton} onPress={handleUnderline}>
                 <FontAwesome6 name="underline" size={16} color="black" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.toolbarButton} onPress={handleComment}>
-                <FontAwesome6 name="comment-alt" size={16} color="black" />
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.toolbarButton, styles.keyboardDown]} onPress={handleKeyboardDismiss}>
@@ -93,9 +85,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
+        paddingBottom: 6
     },
     keyboardArrowContainer: {
         position: "absolute",
-        bottom: 11
+        bottom: 13
     }
 });
