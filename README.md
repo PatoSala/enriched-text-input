@@ -3,7 +3,7 @@
 # enriched-text-input
 
 > [!Note]
-> This library it's still a work in progress.
+> This library its still a work in progress. Expect breaking changes.
 
 Proof of concept for a JavaScript only rich-text TextInput component for React Native.
 The main idea is to render `<Text>` views as children of `<TextInput>`.
