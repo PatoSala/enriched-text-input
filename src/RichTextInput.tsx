@@ -233,6 +233,15 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
         }
 
         if (diff.added.length > 0) {
+            // Check if token index is > 0 and if startIndex === 0 (See RNRT-6)
+            if (startTokenIndex > 0 && startIndex === 0) {
+                updatedTokens[startTokenIndex - 1].text += diff.added;
+                return {
+                    updatedTokens: updatedTokens.filter(token => token.text.length > 0),
+                    plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
+                };
+            }
+
             tokenCopy.text = insertAt(tokenCopy.text, startIndex, diff.added);
             updatedTokens[startTokenIndex] = tokenCopy;
             return {
@@ -244,7 +253,6 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
     // Cross-token
     if (startTokenIndex !== endTokenIndex) {
-        console.log("Cross-token");
         const selectedTokens = updatedTokens.slice(startTokenIndex, endTokenIndex + 1);
         
         if (diff.added.length > 0) {
