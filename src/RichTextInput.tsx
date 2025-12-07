@@ -397,7 +397,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 // Updates annotations and splits tokens if necessary
 // Only when start !== end
 // To-do: Add support for multiple annotations
-const splitTokens = (tokens: Token[], start: number, end: number, type: string ) => {
+const splitTokens = (tokens: Token[], start: number, end: number, type: string, withReplacement?: string ) => {
     let updatedTokens = [...tokens];
 
     // Find token where start
@@ -451,7 +451,7 @@ const splitTokens = (tokens: Token[], start: number, end: number, type: string )
 
         // Middle token is the selected text
         let middleToken = {
-            text: startToken.text.slice(startIndex, endIndex),
+            text: startToken.text.slice(startIndex, endIndex).replace(withReplacement, ""),
             annotations: {
                 ...startToken.annotations,
                 [type]: !startToken.annotations[type]
@@ -502,7 +502,7 @@ const splitTokens = (tokens: Token[], start: number, end: number, type: string )
         }
 
         let secondToken = {
-            text: startToken.text.slice(startIndex, startToken.text.length),
+            text: startToken.text.slice(startIndex, startToken.text.length).replace(withReplacement, ""),
             annotations: {
                 ...startToken.annotations,
                 [type]: allSelectedTokensHaveAnnotation ? false : true
@@ -651,15 +651,15 @@ export default function RichTextInput({ ref }) {
             // Check token containing match
             // If token already haves this annotation, do not format and perform a simple updateToken.
             const annotation = PATTERNS.find(p => p.regex === match.expression);
-            const { result } = splitTokens(tokens, match.start, match.end - 1, annotation.style);
-
-            const { updatedTokens, plain_text } = updateTokens(result, {
+            const { result } = splitTokens(tokens, match.start, match.end - 1, annotation.style, getRequiredLiterals(match.expression).opening);
+            const plain_text = result.reduce((acc, curr) => acc + curr.text, "");
+            /* const { updatedTokens, plain_text } = updateTokens(result, {
                 removed: getRequiredLiterals(match.expression).opening,
                 start: match.start,
                 added: ""
-            })
+            }) */
 
-            setTokens([...concatTokens(updatedTokens)]);
+            setTokens([...concatTokens(result)]);
             prevTextRef.current = plain_text;
 
 
