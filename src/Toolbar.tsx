@@ -60,8 +60,6 @@ export default function Toolbar({
                     <FontAwesome6 name="chevron-down" size={8} color="black"/>
                 </View>
             </TouchableOpacity>
-
-            <Button onPress={() => richTextInputRef?.current?.setValue("This_ is a *bold* italic_ ~strikethrough~ text")} title='Parse' />
         </View>
     );
 }

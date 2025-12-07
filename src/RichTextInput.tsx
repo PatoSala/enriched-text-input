@@ -162,8 +162,6 @@ const parseRichTextString = (richTextString: string, patterns: { regex: string, 
         let match = findMatch(plain_text, pattern.regex);
         
         if (match) {
-            console.log("FOUND MATCH", match);
-
             const { result: splittedTokens } = splitTokens(
                 tokens,
                 match.start,
@@ -322,9 +320,6 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
     const startTokenIndex = updatedTokens.indexOf(startToken);
     const endTokenIndex = updatedTokens.indexOf(endToken);
-
-    console.log("startTokenIndex", startTokenIndex);
-    console.log("endTokenIndex", endTokenIndex);
 
     // Same token
     if (startTokenIndex === endTokenIndex) {
@@ -688,13 +683,11 @@ export default function RichTextInput({ ref }) {
         let match : RichTextMatch | null = null;
 
         for (const pattern of PATTERNS) {
-            console.log("PATTERN", pattern);
             match = findMatch(nextText, pattern.regex);
             if (match) break;
         }
 
         if (match) {
-            console.log("MATCH", match);
             // Check token containing match
             // If token already haves this annotation, do not format and perform a simple updateToken.
             const annotation = PATTERNS.find(p => p.regex === match.expression);
