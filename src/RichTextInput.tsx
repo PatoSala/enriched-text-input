@@ -579,7 +579,8 @@ const splitTokens = (
         }
 
         let lastToken = {
-            text: endToken.text.slice(endIndex, endToken.text.length),
+            // The replace method is used to remove the opening and closing rich text literal chars when parsing.
+            text: endToken.text.slice(endIndex, endToken.text.length).replace(withReplacement, ""),
             annotations: {
                 ...endToken.annotations,
                 [type]: endToken.annotations[type]
