@@ -184,18 +184,21 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
     let startToken;
 
     for (const token of updatedTokens) {
-        if (startIndex <= token.text.length) {
+        if (startIndex < token.text.length) {
             startToken = token;
             break;
         }
         startIndex -= token.text.length;
     }
     // Find token where end
-    let endIndex = diff.removed.length > diff.added.length ? diff.start + diff.removed.length : diff.start + diff.added.length;
+    // We need to add the length of the removed/added text to the start index to get the end index
+    let endIndex = diff.removed.length > diff.added.length
+        ? diff.start + diff.removed.length
+        : diff.start + diff.added.length;
     let endToken;
+
     for (const token of updatedTokens) {
-        // The - 1 is necessary
-        if (endIndex - 1 <= token.text.length) {
+        if (endIndex <= token.text.length) {
             endToken = token;
             break;
         }
@@ -221,6 +224,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
         if (diff.removed.length > 0) {
             tokenCopy.text = removeAt(tokenCopy.text, startIndex, diff.removed);
+
             updatedTokens[startTokenIndex] = tokenCopy;
             return {
                 updatedTokens: updatedTokens.filter(token => token.text.length > 0),
@@ -240,6 +244,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
     // Cross-token
     if (startTokenIndex !== endTokenIndex) {
+        console.log("Cross-token");
         const selectedTokens = updatedTokens.slice(startTokenIndex, endTokenIndex + 1);
         
         if (diff.added.length > 0) {
