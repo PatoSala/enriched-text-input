@@ -1,6 +1,8 @@
 import { useState, useImperativeHandle, useRef, useEffect } from "react";
 import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
 
+const exampleText = "None *bold* _italic_ ~strikethrough~ none";
+
 interface Token {
     text: string;
     annotations: {
@@ -17,11 +19,27 @@ interface Diff {
     removed: string;
     added: string;
 }
+
+interface Annotations {
+    bold: boolean;
+    italic: boolean;
+    lineThrough: boolean;
+    underline: boolean;
+    color: string;
+}
+
+interface RichTextMatch {
+    raw: string;
+    content: string;
+    start: number;
+    end: number;
+    expression: string;
+}
                         
 const PATTERNS = [
-  { marker: "*", style: "bold" },
-  { marker: "_", style: "italic" },
-  { marker: "~", style: "strike" },
+  { style: "bold", regex: "\\*([^*]+)\\*" },
+  { style: "italic", regex: "_([^_]+)_" },
+  { style: "lineThrough", regex: "~([^~]+)~" },
 ];
 
 function insertAt(str, index, substring) {
@@ -40,10 +58,65 @@ function replaceAt(str, index, substring, length) {
   return str.slice(0, i) + substring + str.slice(i + length);
 }
 
-function findMatch(str, marker) {
-  const regex = new RegExp(`\\${marker}(.+?)\\${marker}`);
+function findMatch(str: string, regexExpression: string) : RichTextMatch | null {
+  const regex = new RegExp(regexExpression);
   const match = regex.exec(str);
-  return match ? match[1] : null;
+  return match
+    ? {
+        raw: match[0],
+        content: match[1],
+        start: match.index,
+        end: match.index + match[0].length,
+        expression: regexExpression
+    }
+    : null;
+}
+
+function getRequiredLiterals(regexString) {
+  // Strip leading/trailing slashes and flags (if user passed /.../ form)
+  regexString = regexString.replace(/^\/|\/[a-z]*$/g, "");
+
+  // Remove ^ and $ anchors
+  regexString = regexString.replace(/^\^|\$$/g, "");
+
+  // 1. Find the first literal before any group or operator
+  const beforeGroup = regexString.match(/^((?:\\.|[^[(])+)/);
+  let openLiteral = null;
+
+  if (beforeGroup) {
+    const part = beforeGroup[1];
+    const litMatch = part.match(/\\(.)|([^\\])/); // first literal
+    if (litMatch) {
+      openLiteral = litMatch[1] ?? litMatch[2];
+    }
+  }
+
+  // 2. Detect a closing literal after a capturing group (optional)
+  let closeLiteral = null;
+  const afterGroup = regexString.match(/\)([^).]+)/);
+  if (afterGroup) {
+    const part = afterGroup[1];
+    const litMatch = part.match(/\\(.)|([^\\])/);
+    if (litMatch) {
+      closeLiteral = litMatch[1] ?? litMatch[2];
+    }
+  }
+
+  // Return both if available, otherwise just the opening literal
+  return {
+    opening: openLiteral,
+    closing: closeLiteral,
+  };
+}
+
+function concileAnnotations(prevAnnotations, nextAnnotations) {
+  return {
+    bold: prevAnnotations.bold || nextAnnotations.bold,
+    italic: prevAnnotations.italic || nextAnnotations.italic,
+    lineThrough: prevAnnotations.lineThrough || nextAnnotations.lineThrough,
+    underline: prevAnnotations.underline || nextAnnotations.underline,
+    color: prevAnnotations.color || nextAnnotations.color,
+  };
 }
 
 // Returns string modifications
@@ -70,8 +143,12 @@ function diffStrings(prev, next) : Diff {
 }
 
 // Returns an array of tokens
-const parseString = (text: string) => {
-    
+const parseRichTextString = (richTextString: string, patterns: { regex: string, style: string }[]) => {
+    const tokens = [];
+
+    for (const pattern of patterns) {
+        
+    }
 }
 
 // Returns a rich text string
@@ -208,6 +285,9 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
     const startTokenIndex = updatedTokens.indexOf(startToken);
     const endTokenIndex = updatedTokens.indexOf(endToken);
 
+    console.log("startTokenIndex", startTokenIndex);
+    console.log("endTokenIndex", endTokenIndex);
+
     // Same token
     if (startTokenIndex === endTokenIndex) {
         const tokenCopy = { ...startToken };
@@ -305,7 +385,6 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
                 updatedTokens: updatedTokens.filter(token => token.text.length > 0),
                 plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, ""),
             }
-
         }
 
         return {
@@ -317,6 +396,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
 // Updates annotations and splits tokens if necessary
 // Only when start !== end
+// To-do: Add support for multiple annotations
 const splitTokens = (tokens: Token[], start: number, end: number, type: string ) => {
     let updatedTokens = [...tokens];
 
@@ -336,7 +416,7 @@ const splitTokens = (tokens: Token[], start: number, end: number, type: string )
     let endToken;
     for (const token of updatedTokens) {
         // The - 1 is necessary
-        if (endIndex - 1 < token.text.length) {
+        if (endIndex <= token.text.length) {
             endToken = token;
             break;
         }
@@ -495,7 +575,6 @@ const concatTokens = (tokens: Token[]) => {
             prevToken.annotations.italic === token.annotations.italic &&
             prevToken.annotations.lineThrough === token.annotations.lineThrough &&
             prevToken.annotations.underline === token.annotations.underline &&
-            prevToken.annotations.comment === token.annotations.comment &&
             prevToken.annotations.color === token.annotations.color) {
             prevToken.text += token.text;
             continue;
@@ -521,6 +600,8 @@ export default function RichTextInput({ ref }) {
         }
     }]);
 
+    console.log("TOKENS", tokens);
+
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
@@ -536,9 +617,14 @@ export default function RichTextInput({ ref }) {
         }
     }, [tokens]);
 
+    /**
+     * Prev text should not contain matching rich text formats.
+     * Those should be spliced once the corresponding tokens are created.
+     */
     const prevTextRef = useRef(tokens.map(t => t.text).join(""));
 
     // Find a better name
+    // To-do: Allow for multiple styles at once.
     const [toSplit, setToSplit] = useState({
         start: 0,
         end: 0,
@@ -551,6 +637,49 @@ export default function RichTextInput({ ref }) {
 
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
+
+        let match : RichTextMatch | null = null;
+
+        for (const pattern of PATTERNS) {
+            console.log("PATTERN", pattern);
+            match = findMatch(nextText, pattern.regex);
+            if (match) break;
+        }
+
+        if (match) {
+            console.log("MATCH", match);
+            // Check token containing match
+            // If token already haves this annotation, do not format and perform a simple updateToken.
+            const annotation = PATTERNS.find(p => p.regex === match.expression);
+            const { result } = splitTokens(tokens, match.start, match.end - 1, annotation.style);
+
+            const { updatedTokens, plain_text } = updateTokens(result, {
+                removed: getRequiredLiterals(match.expression).opening,
+                start: match.start,
+                added: ""
+            })
+
+            setTokens([...concatTokens(updatedTokens)]);
+            prevTextRef.current = plain_text;
+
+
+            return;
+
+            /* const annotation = PATTERNS.find(p => p.marker === match.marker);
+            const { result } = splitTokens(tokens, match.start, match.end - 1, annotation.style);
+            
+            // Remove opening marker
+            // Note: find a way to remove the marker before splitting the token to not run this whole function just for that.
+            const { updatedTokens, plain_text } = updateTokens(result, {
+                removed: match.marker,
+                start: match.start,
+                added: ""
+            });
+            
+            setTokens([...concatTokens(updatedTokens)]);
+            prevTextRef.current = plain_text;
+            return; */
+        }
 
         if (diff.start === toSplit.start && diff.start === toSplit.end && diff.added.length > 0 && toSplit.type) {
             const { result } = insertToken(tokens, diff.start, toSplit.type, diff.added);
