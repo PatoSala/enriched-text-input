@@ -1,7 +1,7 @@
 import { useState, useImperativeHandle, useRef, useEffect } from "react";
 import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
 
-const exampleText = "None *bold* _italic_ ~strikethrough~ none";
+const exampleText = "_None_ *bold* _italic_ ~strikethrough~ none";
 
 interface Token {
     text: string;
@@ -143,11 +143,49 @@ function diffStrings(prev, next) : Diff {
 }
 
 // Returns an array of tokens
-const parseRichTextString = (richTextString: string, patterns: { regex: string, style: string }[]) => {
-    const tokens = [];
+const parseRichTextString = (richTextString: string, patterns: { regex: string, style: string }[], initalTokens = null) => {
+    let tokens = initalTokens || [
+        {
+            text: richTextString,
+            annotations: {
+                bold: false,
+                italic: false,
+                lineThrough: false,
+                underline: false,
+                color: "black"
+            }
+        }
+    ];
+    let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
 
     for (const pattern of patterns) {
+        let match = findMatch(plain_text, pattern.regex);
         
+        if (match) {
+            console.log("FOUND MATCH", match);
+
+            const { result: splittedTokens } = splitTokens(
+                tokens,
+                match.start,
+                match.end - 1,
+                pattern.style,
+                getRequiredLiterals(match.expression).opening
+            );
+            tokens = splittedTokens;
+            plain_text = splittedTokens.reduce((acc, curr) => acc + curr.text, "");
+            
+            const parsed = parseRichTextString(tokens, patterns, tokens);
+            
+            return {
+                tokens: parsed.tokens,
+                plain_text: parsed.plain_text
+            }
+        }
+    }
+
+    return {
+        tokens: tokens.filter(token => token.text.length > 0),
+        plain_text: plain_text
     }
 }
 
@@ -397,7 +435,14 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 // Updates annotations and splits tokens if necessary
 // Only when start !== end
 // To-do: Add support for multiple annotations
-const splitTokens = (tokens: Token[], start: number, end: number, type: string, withReplacement?: string ) => {
+const splitTokens = (
+    tokens: Token[],
+    start: number,
+    end: number,
+    type: string,
+    /** Used to strip opening and closing chars of rich text matches. */
+    withReplacement?: string
+) => {
     let updatedTokens = [...tokens];
 
     // Find token where start
@@ -451,6 +496,7 @@ const splitTokens = (tokens: Token[], start: number, end: number, type: string, 
 
         // Middle token is the selected text
         let middleToken = {
+            // The replace method is used to remove the opening and closing rich text literal chars when parsing.
             text: startToken.text.slice(startIndex, endIndex).replace(withReplacement, ""),
             annotations: {
                 ...startToken.annotations,
@@ -459,7 +505,8 @@ const splitTokens = (tokens: Token[], start: number, end: number, type: string, 
         }
 
         let lastToken = {
-            text: startToken.text.slice(endIndex , startToken.text.length),
+            // The replace method is used to remove the opening and closing rich text literal chars when parsing.
+            text: startToken.text.slice(endIndex , startToken.text.length).replace(withReplacement, ""),
             annotations: {
                 ...startToken.annotations,
                 [type]: startToken.annotations[type]
@@ -502,6 +549,7 @@ const splitTokens = (tokens: Token[], start: number, end: number, type: string, 
         }
 
         let secondToken = {
+            // The replace method is used to remove the opening and closing rich text literal chars when parsing.
             text: startToken.text.slice(startIndex, startToken.text.length).replace(withReplacement, ""),
             annotations: {
                 ...startToken.annotations,
@@ -600,8 +648,6 @@ export default function RichTextInput({ ref }) {
         }
     }]);
 
-    console.log("TOKENS", tokens);
-
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
@@ -651,7 +697,14 @@ export default function RichTextInput({ ref }) {
             // Check token containing match
             // If token already haves this annotation, do not format and perform a simple updateToken.
             const annotation = PATTERNS.find(p => p.regex === match.expression);
-            const { result } = splitTokens(tokens, match.start, match.end - 1, annotation.style, getRequiredLiterals(match.expression).opening);
+            const { result } = splitTokens(
+                tokens,
+                match.start,
+                match.end - 1,
+                annotation.style,
+                // Get the rich text opening char to replace it
+                getRequiredLiterals(match.expression).opening
+            );
             const plain_text = result.reduce((acc, curr) => acc + curr.text, "");
             /* const { updatedTokens, plain_text } = updateTokens(result, {
                 removed: getRequiredLiterals(match.expression).opening,
@@ -767,7 +820,9 @@ export default function RichTextInput({ ref }) {
         },
         setValue(value: string) {
             // To keep styles, parsing should be done before setting value
-
+            const { tokens, plain_text } = parseRichTextString(value, PATTERNS);
+            setTokens([...concatTokens(tokens)]);
+            prevTextRef.current = plain_text;
         }
     }))
 

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Keyboard } from "react-native";
+import { View, Button, StyleSheet, TouchableOpacity, Keyboard } from "react-native";
 import { RefObject, Ref } from "react";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
@@ -60,6 +60,8 @@ export default function Toolbar({
                     <FontAwesome6 name="chevron-down" size={8} color="black"/>
                 </View>
             </TouchableOpacity>
+
+            <Button onPress={() => richTextInputRef?.current?.setValue("This_ is a *bold* italic_ ~strikethrough~ text")} title='Parse' />
         </View>
     );
 }

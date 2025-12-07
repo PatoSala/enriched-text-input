@@ -8,8 +8,6 @@ import RichTextInput from './src/RichTextInput';
 export default function App() {
   const richTextInputRef = useRef(null);
 
-  const [value, setValue] = useState('');
-
   return (
     <View style={styles.container}>
       <RichTextInput ref={richTextInputRef}/>
