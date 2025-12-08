@@ -1,6 +1,6 @@
 {
   "name": "enriched-text-input",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JavaScript only rich text input component for React Native. Compatible with Expo Go.",
   "keywords": [
     "rich-text",
