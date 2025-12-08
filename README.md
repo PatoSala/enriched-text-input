@@ -28,6 +28,39 @@ In theory, by only using JavaScript we are able to provide better cross-platform
 ## Known limitations
 - Inline images.
 
+## Installation
+```
+npm install enriched-text-input
+```
+
+## Usage
+```js
+import { useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+
+import { RichTextInput, Toolbar } from 'enriched-text-input';
+
+export default function App() {
+  const richTextInputRef = useRef(null);
+
+  return (
+    <View style={styles.container}>
+      <RichTextInput ref={richTextInputRef}/>
+      <Toolbar richTextInputRef={richTextInputRef} />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingTop: 120
+  },
+});
+
+```
+
 ## Contributing
 
 ### Clone this repo
