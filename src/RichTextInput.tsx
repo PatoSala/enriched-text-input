@@ -25,7 +25,6 @@ interface Annotations {
     italic: boolean;
     lineThrough: boolean;
     underline: boolean;
-    color: string;
 }
 
 interface RichTextMatch {
@@ -111,11 +110,11 @@ function getRequiredLiterals(regexString) {
 
 function concileAnnotations(prevAnnotations, nextAnnotations) {
   return {
-    bold: prevAnnotations.bold || nextAnnotations.bold,
-    italic: prevAnnotations.italic || nextAnnotations.italic,
-    lineThrough: prevAnnotations.lineThrough || nextAnnotations.lineThrough,
-    underline: prevAnnotations.underline || nextAnnotations.underline,
-    color: prevAnnotations.color || nextAnnotations.color,
+    bold: nextAnnotations.bold ? !prevAnnotations.bold : prevAnnotations.bold,
+    italic: nextAnnotations.italic ? !prevAnnotations.italic : prevAnnotations.italic,
+    lineThrough: nextAnnotations.lineThrough ? !prevAnnotations.lineThrough : prevAnnotations.lineThrough,
+    underline: nextAnnotations.underline ? !prevAnnotations.underline : prevAnnotations.underline,
+    /* color: nextAnnotations.color */
   };
 }
 
@@ -152,7 +151,6 @@ const parseRichTextString = (richTextString: string, patterns: { regex: string, 
                 italic: false,
                 lineThrough: false,
                 underline: false,
-                color: "black"
             }
         }
     ];
@@ -166,7 +164,7 @@ const parseRichTextString = (richTextString: string, patterns: { regex: string, 
                 tokens,
                 match.start,
                 match.end - 1,
-                pattern.style,
+                { [pattern.style]: true },
                 getRequiredLiterals(match.expression).opening
             );
             tokens = splittedTokens;
@@ -194,7 +192,7 @@ const parseTokens = (tokens) => {
 
 // Inserts a token at the given index
 // Only when start === end
-function insertToken(tokens: Token[], index: number, type: string, text = "" ) {
+function insertToken(tokens: Token[], index: number, annotations: Annotations, text = "" ) {
     const updatedTokens = [...tokens];
 
     let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
@@ -203,10 +201,7 @@ function insertToken(tokens: Token[], index: number, type: string, text = "" ) {
     if (plain_text.length === index) {
         updatedTokens.push({
             text: text,
-            annotations: {
-                ...updatedTokens[updatedTokens.length - 1].annotations,
-                [type]: !updatedTokens[updatedTokens.length - 1].annotations[type]
-            }
+            annotations: concileAnnotations(updatedTokens[updatedTokens.length - 1].annotations, annotations)
         });
 
         return { result: updatedTokens.filter(token => token.text.length > 0) };
@@ -224,30 +219,20 @@ function insertToken(tokens: Token[], index: number, type: string, text = "" ) {
     }
 
     const startTokenIndex = updatedTokens.indexOf(startToken);
-
     let firstToken = {
         text: startToken.text.slice(0, startIndex),
-        annotations: {
-            ...startToken.annotations,
-            [type]: startToken.annotations[type]
-        }
+        annotations: startToken.annotations
     }
 
     // Middle token is the selected text
     let middleToken = {
         text: text,
-        annotations: {
-            ...startToken.annotations,
-            [type]: !startToken.annotations[type]
-        }
+        annotations: concileAnnotations(startToken.annotations, annotations)
     }
 
     let lastToken = {
         text: startToken.text.slice(startIndex , startToken.text.length),
-        annotations: {
-            ...startToken.annotations,
-            [type]: startToken.annotations[type]
-        }
+        annotations: startToken.annotations
     }
 
     /**
@@ -434,7 +419,7 @@ const splitTokens = (
     tokens: Token[],
     start: number,
     end: number,
-    type: string,
+    annotations: Annotations,
     /** Used to strip opening and closing chars of rich text matches. */
     withReplacement?: string
 ) => {
@@ -483,34 +468,25 @@ const splitTokens = (
         
         let firstToken = {
             text: startToken.text.slice(0, startIndex),
-            annotations: {
-                ...startToken.annotations,
-                [type]: startToken.annotations[type]
-            }
+            annotations: startToken.annotations
         }
 
         // Middle token is the selected text
         let middleToken = {
             // The replace method is used to remove the opening and closing rich text literal chars when parsing.
             text: startToken.text.slice(startIndex, endIndex).replace(withReplacement, ""),
-            annotations: {
-                ...startToken.annotations,
-                [type]: !startToken.annotations[type]
-            }
+            annotations: concileAnnotations(startToken.annotations, annotations)
         }
 
         let lastToken = {
             // The replace method is used to remove the opening and closing rich text literal chars when parsing.
             text: startToken.text.slice(endIndex , startToken.text.length).replace(withReplacement, ""),
-            annotations: {
-                ...startToken.annotations,
-                [type]: startToken.annotations[type]
-            }
+            annotations: startToken.annotations
         }
 
         // Note: the following conditionals are to prevent empty tokens.
         // It would be ideal if instead of catching empty tokens we could write the correct insert logic to prevent them.
-        if (firstToken.text.length === 0 && lastToken.text.length === 0) {
+        /* if (firstToken.text.length === 0 && lastToken.text.length === 0) {
             updatedTokens.splice(startTokenIndex, 1, middleToken);
             return { result: updatedTokens };
         }
@@ -523,16 +499,18 @@ const splitTokens = (
         if (lastToken.text.length === 0) {
             updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken);
             return { result: updatedTokens };
-        }
+        } */
 
         updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken)
-        return { result: updatedTokens };
+        return { result: updatedTokens.filter(token => token.text.length > 0) };
     }
 
     // Cross-token selection
     if (startTokenIndex !== endTokenIndex) {
         // Before splitting, check if all selected tokens already have the annotation
         const selectedTokens = updatedTokens.slice(startTokenIndex, endTokenIndex + 1);
+
+        const type = Object.keys(annotations)[0]; // When splitting we only pass one key to annotations param.
         const allSelectedTokensHaveAnnotation = selectedTokens.every((token) => token.annotations[type] === true);
 
         let firstToken = {
@@ -640,7 +618,6 @@ export default function RichTextInput({ ref }) {
             italic: false,
             lineThrough: false,
             underline: false,
-            color: "black"
         }
     }]);
 
@@ -653,7 +630,6 @@ export default function RichTextInput({ ref }) {
                     italic: false,
                     lineThrough: false,
                     underline: false,
-                    color: "black"
                 }
             }])
         }
@@ -670,7 +646,12 @@ export default function RichTextInput({ ref }) {
     const [toSplit, setToSplit] = useState({
         start: 0,
         end: 0,
-        type: null
+        annotations: {
+            bold: false,
+            italic: false,
+            lineThrough: false,
+            underline: false,
+        }
     });
 
     const handleSelectionChange = ({ nativeEvent }) => {
@@ -695,7 +676,7 @@ export default function RichTextInput({ ref }) {
                 tokens,
                 match.start,
                 match.end - 1,
-                annotation.style,
+                { [annotation.style]: true },
                 // Get the rich text opening char to replace it
                 getRequiredLiterals(match.expression).opening
             );
@@ -709,15 +690,33 @@ export default function RichTextInput({ ref }) {
             setTokens([...concatTokens(result)]);
             prevTextRef.current = plain_text;
 
-
             return;
         }
 
-        if (diff.start === toSplit.start && diff.start === toSplit.end && diff.added.length > 0 && toSplit.type) {
-            const { result } = insertToken(tokens, diff.start, toSplit.type, diff.added);
+        if (diff.start === toSplit.start
+            && diff.start === toSplit.end
+            && diff.added.length > 0
+            /* && Object.values(toSplit.annotations).includes(true) */) {
+            const { result } = insertToken(
+                tokens,
+                diff.start,
+                toSplit.annotations,
+                diff.added
+            );
             const plain_text = result.map(t => t.text).join("");
             setTokens([...concatTokens(result)]);
-            setToSplit({ start: 0, end: 0, type: null });
+
+            // Reset
+            setToSplit({
+                start: 0,
+                end: 0,
+                annotations: {
+                    bold: false,
+                    italic: false,
+                    lineThrough: false,
+                    underline: false,
+                }
+            });
             prevTextRef.current = plain_text;
             return;
         }
@@ -732,13 +731,27 @@ export default function RichTextInput({ ref }) {
         toggleBold() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && toSplit.type === "bold") {
-                setToSplit({ start: 0, end: 0, type: null });
+            if (start === end && toSplit.annotations.bold) {
+                setToSplit({
+                    start: 0,
+                    end: 0,
+                    annotations: {
+                        ...toSplit.annotations,
+                        bold: false
+                    }
+                });
                 return;
             }
 
             if (start === end) {
-                setToSplit({ start, end, type: "bold" });
+                setToSplit({
+                    start,
+                    end,
+                    annotations: {
+                        ...toSplit.annotations,
+                        bold: true
+                    }
+                });
                 return;
             }
 
@@ -749,24 +762,41 @@ export default function RichTextInput({ ref }) {
                 setToSplit({
                     start: end,
                     end: end,
-                    type: "bold"
+                    annotations: {
+                        ...toSplit.annotations,
+                        bold: true
+                    }
                 })
             }
 
-            const { result } = splitTokens(tokens, start, end, "bold");
+            const { result } = splitTokens(tokens, start, end, { bold: true });
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         toggleItalic() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && toSplit.type === "italic") {
-                setToSplit({ start: 0, end: 0, type: null });
+            if (start === end && toSplit.annotations.italic ) {
+                setToSplit({
+                    start: 0,
+                    end: 0,
+                    annotations: {
+                        ...toSplit.annotations,
+                        italic: false
+                    }
+                });
                 return;
             }
 
             if (start === end) {
-                setToSplit({ start, end, type: "italic" });
+                setToSplit({
+                    start,
+                    end,
+                    annotations: {
+                        ...toSplit.annotations,
+                        italic: true
+                    }
+                });
                 return;
             }
 
@@ -774,24 +804,41 @@ export default function RichTextInput({ ref }) {
                 setToSplit({
                     start: end,
                     end: end,
-                    type: "italic"
-                })
+                    annotations: {
+                        ...toSplit.annotations,
+                        italic: true
+                    }
+                });
             }
 
-            const { result } = splitTokens(tokens, start, end, "italic");
+            const { result } = splitTokens(tokens, start, end, { italic: true });
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         toggleLineThrough() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && toSplit.type === "lineThrough") {
-                setToSplit({ start: 0, end: 0, type: null });
+            if (start === end && toSplit.annotations.lineThrough) {
+                setToSplit({
+                    start: 0,
+                    end: 0,
+                    annotations: {
+                        ...toSplit.annotations,
+                        lineThrough: false
+                    }
+                });
                 return;
             }
 
             if (start === end) {
-                setToSplit({ start, end, type: "lineThrough" });
+                setToSplit({
+                    start,
+                    end,
+                    annotations: {
+                        ...toSplit.annotations,
+                        lineThrough: true
+                    }
+                });
                 return;
             }
 
@@ -799,24 +846,41 @@ export default function RichTextInput({ ref }) {
                 setToSplit({
                     start: end,
                     end: end,
-                    type: "lineThrough"
+                    annotations: {
+                        ...toSplit.annotations,
+                        lineThrough: true
+                    }
                 })
             }
 
-            const { result } = splitTokens(tokens, start, end, "lineThrough");
+            const { result } = splitTokens(tokens, start, end, { lineThrough: true });
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
         toggleUnderline() {
             const { start, end } = selectionRef.current;
 
-            if (start === end && toSplit.type === "underline") {
-                setToSplit({ start: 0, end: 0, type: null });
+            if (start === end && toSplit.annotations.underline) {
+                setToSplit({
+                    start: 0,
+                    end: 0,
+                    annotations: {
+                        ...toSplit.annotations,
+                        underline: false
+                    }
+                });
                 return;
             }
 
             if (start === end) {
-                setToSplit({ start, end, type: "underline" });
+                setToSplit({
+                    start,
+                    end,
+                    annotations: {
+                        ...toSplit.annotations,
+                        underline: true
+                    }
+                });
                 return;
             }
 
@@ -824,11 +888,14 @@ export default function RichTextInput({ ref }) {
                 setToSplit({
                     start: end,
                     end: end,
-                    type: "underline"
+                    annotations: {
+                        ...toSplit.annotations,
+                        underline: true
+                    }
                 })
             }
 
-            const { result } = splitTokens(tokens, start, end, "underline");
+            const { result } = splitTokens(tokens, start, end, { underline: true });
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
