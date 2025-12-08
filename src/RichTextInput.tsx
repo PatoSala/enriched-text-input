@@ -711,21 +711,6 @@ export default function RichTextInput({ ref }) {
 
 
             return;
-
-            /* const annotation = PATTERNS.find(p => p.marker === match.marker);
-            const { result } = splitTokens(tokens, match.start, match.end - 1, annotation.style);
-            
-            // Remove opening marker
-            // Note: find a way to remove the marker before splitting the token to not run this whole function just for that.
-            const { updatedTokens, plain_text } = updateTokens(result, {
-                removed: match.marker,
-                start: match.start,
-                added: ""
-            });
-            
-            setTokens([...concatTokens(updatedTokens)]);
-            prevTextRef.current = plain_text;
-            return; */
         }
 
         if (diff.start === toSplit.start && diff.start === toSplit.end && diff.added.length > 0 && toSplit.type) {
@@ -757,6 +742,17 @@ export default function RichTextInput({ ref }) {
                 return;
             }
 
+            /**
+             * This prevents that when a portion of text is set to bold, the next text inserted after it is not bold.
+             */
+            if (start < end) {
+                setToSplit({
+                    start: end,
+                    end: end,
+                    type: "bold"
+                })
+            }
+
             const { result } = splitTokens(tokens, start, end, "bold");
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
@@ -772,6 +768,14 @@ export default function RichTextInput({ ref }) {
             if (start === end) {
                 setToSplit({ start, end, type: "italic" });
                 return;
+            }
+
+            if (start < end) {
+                setToSplit({
+                    start: end,
+                    end: end,
+                    type: "italic"
+                })
             }
 
             const { result } = splitTokens(tokens, start, end, "italic");
@@ -791,6 +795,14 @@ export default function RichTextInput({ ref }) {
                 return;
             }
 
+            if (start < end) {
+                setToSplit({
+                    start: end,
+                    end: end,
+                    type: "lineThrough"
+                })
+            }
+
             const { result } = splitTokens(tokens, start, end, "lineThrough");
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
@@ -806,6 +818,14 @@ export default function RichTextInput({ ref }) {
             if (start === end) {
                 setToSplit({ start, end, type: "underline" });
                 return;
+            }
+
+            if (start < end) {
+                setToSplit({
+                    start: end,
+                    end: end,
+                    type: "underline"
+                })
             }
 
             const { result } = splitTokens(tokens, start, end, "underline");
