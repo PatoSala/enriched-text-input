@@ -681,11 +681,6 @@ export default function RichTextInput({ ref }) {
                 getRequiredLiterals(match.expression).opening
             );
             const plain_text = result.reduce((acc, curr) => acc + curr.text, "");
-            /* const { updatedTokens, plain_text } = updateTokens(result, {
-                removed: getRequiredLiterals(match.expression).opening,
-                start: match.start,
-                added: ""
-            }) */
 
             setTokens([...concatTokens(result)]);
             prevTextRef.current = plain_text;
@@ -696,7 +691,7 @@ export default function RichTextInput({ ref }) {
         if (diff.start === toSplit.start
             && diff.start === toSplit.end
             && diff.added.length > 0
-            /* && Object.values(toSplit.annotations).includes(true) */) {
+            && Object.values(toSplit.annotations).includes(true)) {
             const { result } = insertToken(
                 tokens,
                 diff.start,
@@ -912,7 +907,6 @@ export default function RichTextInput({ ref }) {
             <TextInput
                 multiline={true}
                 ref={inputRef}
-                autoCorrect={false}
                 autoComplete="off"
                 style={styles.textInput}
                 placeholder="Rich text input"
@@ -955,11 +949,6 @@ const styles = StyleSheet.create({
     },
     underline: {
         textDecorationLine: "underline",
-    },
-    comment: {
-        textDecorationLine: "underline",
-        textDecorationColor: "rgba(255, 203, 0, .35)",
-        backgroundColor: "rgba(255, 203, 0, .12)"
     },
     underlineLineThrough: {
         textDecorationLine: "underline line-through"

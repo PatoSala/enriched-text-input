@@ -7,7 +7,7 @@
 
 Proof of concept for a JavaScript only rich-text TextInput component for React Native.
 The main idea is to render `<Text>` views as children of `<TextInput>`.
-It will only support text styling since it's not possible to render images inside `Text` views in React Native.
+It will only support text styling since it's not possible to render images inside `Text` views in React Native. [Try it on Expo Snack](https://snack.expo.dev/@patosala/enriched-text-input).
 
 ## Motivation
 The field for rich-text in react native is still a bit green. Current libraries that add support for rich-text in react native applications are either WebViews wrapping libraries for the web, limiting customization, or require native code which drops support for Expo Go and react-native-web.
