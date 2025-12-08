@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Button } from 'react-native';
 
-import { RichTextInput, Toolbar } from '../';
+import { RichTextInput, Toolbar } from 'enriched-text-input';
 
 export default function App() {
   const richTextInputRef = useRef(null);
