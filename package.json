@@ -24,6 +24,7 @@
     "example": "example"
   },
   "workspaces": [
+    ".",
     "example"
   ],
   "scripts": {
