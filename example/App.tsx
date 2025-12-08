@@ -11,7 +11,6 @@ export default function App() {
     <View style={styles.container}>
       <RichTextInput ref={richTextInputRef}/>
       <Toolbar richTextInputRef={richTextInputRef} />
-      <Text>Holaaa</Text>
       <StatusBar style="auto" />
     </View>
   );
