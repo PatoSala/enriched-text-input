@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "react-native-rich-text",
-    "slug": "react-native-rich-text",
+    "name": "enriched-text-input-example",
+    "slug": "enriched-text-input-example",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

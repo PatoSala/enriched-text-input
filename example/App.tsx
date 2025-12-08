@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, TextInput, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Button } from 'react-native';
 
-import Toolbar from './src/Toolbar';
-import RichTextInput from './src/RichTextInput';
+import { RichTextInput, Toolbar } from '../';
 
 export default function App() {
   const richTextInputRef = useRef(null);
@@ -12,6 +11,7 @@ export default function App() {
     <View style={styles.container}>
       <RichTextInput ref={richTextInputRef}/>
       <Toolbar richTextInputRef={richTextInputRef} />
+      <Text>Holaaa</Text>
       <StatusBar style="auto" />
     </View>
   );

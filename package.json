@@ -1,24 +1,43 @@
 {
-  "name": "react-native-rich-text",
-  "description": "JavaScript only rich text input component for React Native. Compatible with Expo Go.",
+  "name": "enriched-text-input",
   "version": "1.0.0",
+  "description": "JavaScript only rich text input component for React Native. Compatible with Expo Go.",
+  "keywords": [
+    "rich-text",
+    "react-native",
+    "react-native-web",
+    "expo"
+  ],
+  "homepage": "https://github.com/PatoSala/react-native-rich-text#readme",
+  "bugs": {
+    "url": "https://github.com/PatoSala/react-native-rich-text/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PatoSala/react-native-rich-text.git"
+  },
+  "license": "MIT",
+  "author": "Pato Sala",
+  "private": true,
   "main": "index.ts",
+  "directories": {
+    "example": "example"
+  },
+  "workspaces": [
+    "example/*"
+  ],
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@expo/vector-icons": "^15.0.3",
+    "@expo/vector-icons": "^15.0.3"
+  },
+  "peerDependencies": {
     "expo": "~54.0.25",
-    "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
     "react-native": "0.81.5"
   },
-  "private": true,
   "devDependencies": {
-    "@types/react": "~19.1.10",
-    "typescript": "~5.9.2"
+    "metro-react-native-babel-preset": "^0.77.0"
   }
 }
