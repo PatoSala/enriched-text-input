@@ -12,11 +12,11 @@ It will only support text styling since it's not possible to render images insid
 ## Motivation
 The field for rich-text in react native is still a bit green. Current libraries that add support for rich-text in react native applications are either WebViews wrapping libraries for the web, limiting customization, or require native code which drops support for Expo Go and react-native-web.
 
-In theory, by only using JavaScript we are able to provide better cross-platform compatibility and the possibility to style however you want elements like links, mentions, bold, italic, unerline text and more.
+In theory, by only using JavaScript we are able to provide better cross-platform compatibility and the possibility to style elements however you want as long as they follow react-native's `Text` supported styles.
 
 ## Features
 
-- [x] Basic text formatting (*bold*, _italic_, __underline__, ~~strikethrough~~).
+- [x] Basic text formatting (__bold__, _italic_, underline, ~~strikethrough~~ and `codeblocks`).
 - [x] Rich text format parsing.
 - [ ] Links and mentions.
 - [ ] Custom styling.
@@ -27,7 +27,7 @@ In theory, by only using JavaScript we are able to provide better cross-platform
 
 ## Known limitations
 - Inline images.
-- Padding.
+- Only `Text`component styles are supported.
 
 ## Installation
 ```
@@ -36,7 +36,7 @@ npm install enriched-text-input
 
 ## Usage
 ```js
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { RichTextInput, Toolbar } from 'enriched-text-input';
@@ -47,7 +47,14 @@ export default function App() {
   return (
     <View style={styles.container}>
       <RichTextInput ref={richTextInputRef}/>
-      <Toolbar richTextInputRef={richTextInputRef} />
+      <Toolbar richTextInputRef={richTextInputRef}>
+        <Toolbar.Bold />
+        <Toolbar.Italic />
+        <Toolbar.Underline />
+        <Toolbar.Strikethrough />
+        <Toolbar.Code />
+        <Toolbar.Keyboard />
+      </Toolbar>
     </View>
   );
 }
@@ -59,6 +66,7 @@ const styles = StyleSheet.create({
     paddingTop: 120
   },
 });
+
 
 ```
 

@@ -1,6 +1,5 @@
-import { useRef, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { RichTextInput, Toolbar } from 'enriched-text-input';
 
@@ -9,7 +8,6 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-
       <RichTextInput ref={richTextInputRef}/>
       <Toolbar richTextInputRef={richTextInputRef}>
         <Toolbar.Bold />
@@ -19,9 +17,6 @@ export default function App() {
         <Toolbar.Code />
         <Toolbar.Keyboard />
       </Toolbar>
-
-      
-      <StatusBar style="auto" />
     </View>
   );
 }
