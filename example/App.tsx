@@ -10,7 +10,14 @@ export default function App() {
   return (
     <View style={styles.container}>
       <RichTextInput ref={richTextInputRef}/>
-      <Toolbar richTextInputRef={richTextInputRef} />
+      <Toolbar richTextInputRef={richTextInputRef}>
+        <Toolbar.Bold />
+        <Toolbar.Italic />
+        <Toolbar.Underline />
+        <Toolbar.Strikethrough />
+        <Toolbar.Code />
+        <Toolbar.Keyboard />
+      </Toolbar>
       <StatusBar style="auto" />
     </View>
   );
