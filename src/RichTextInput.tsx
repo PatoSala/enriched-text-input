@@ -27,12 +27,16 @@ interface RichTextMatch {
     end: number;
     expression: string;
 }
+
+interface RichTextInputProps {
+    ref: any
+}
                         
 const PATTERNS = [
-  { style: "bold", regex: "\\*([^*]+)\\*" },
-  { style: "italic", regex: "_([^_]+)_" },
-  { style: "lineThrough", regex: "~([^~]+)~" },
-  { style: "code", regex: "`([^`]+)`" },
+  { style: "bold", regex: "\\*([^*]+)\\*", render: <Text style={{ fontWeight: "bold" }} /> },
+  { style: "italic", regex: "_([^_]+)_", render: <Text style={{ fontStyle: "italic" }} /> },
+  { style: "lineThrough", regex: "~([^~]+)~", render: <Text style={{ textDecorationLine: "line-through" }} /> },
+  { style: "code", regex: "`([^`]+)`", render: <Text style={{ fontFamily: "ui-monospace", backgroundColor: "lightgray", color: "red", paddingHorizontal: 6 }} /> },
 ];
 
 function insertAt(str, index, substring) {
@@ -571,7 +575,64 @@ const concatTokens = (tokens: Token[]) => {
     return concatenedTokens;
 }
 
-export default function RichTextInput({ ref }) {
+function Token({ token }) {
+    const { text, annotations } = token;
+    const wrappers = [];
+
+    if (annotations.bold) wrappers.push(Bold);
+    if (annotations.italic) wrappers.push(Italic);
+    if (annotations.underline && annotations.lineThrough) wrappers.push(UnderlineStrikethrough);
+    if (annotations.underline) wrappers.push(Underline);
+    if (annotations.lineThrough) wrappers.push(Strikethrough);
+    if (annotations.code) wrappers.push(Code);
+
+    return wrappers.reduce(
+        (children, Wrapper) => <Wrapper>{children}</Wrapper>,
+        text
+    );
+}
+
+function Code({ children }) {
+    return (
+        <Text style={styles.code}>{children}</Text>
+    )
+}
+
+function Bold({ children }) {
+    return (
+        <Text style={styles.bold}>{children}</Text>
+    )
+}
+
+function Italic({ children }) {
+    return (
+        <Text style={styles.italic}>{children}</Text>
+    )
+}
+
+function Underline({ children }) {
+    return (
+        <Text style={styles.underline}>{children}</Text>
+    )
+}
+
+function Strikethrough({ children }) {
+    return (
+        <Text style={styles.lineThrough}>{children}</Text>
+    )
+}
+
+function UnderlineStrikethrough({ children }) {
+    return (
+        <Text style={styles.underlineLineThrough}>{children}</Text>
+    )
+}
+
+export default function RichTextInput(props: RichTextInputProps) {
+    const {
+        ref
+    } = props;
+
     const inputRef = useRef<TextInput>(null);
     const selectionRef = useRef({ start: 0, end: 0 });
     const [tokens, setTokens] = useState([{
@@ -662,7 +723,7 @@ export default function RichTextInput({ ref }) {
                 tokens,
                 diff.start,
                 toSplit.annotations,
-                diff.added
+                /* toSplit.annotations.code ? ` ${diff.added} ` :  */diff.added
             );
             const plain_text = result.map(t => t.text).join("");
             setTokens([...concatTokens(result)]);
@@ -690,6 +751,13 @@ export default function RichTextInput({ ref }) {
     }
 
     useImperativeHandle(ref, () => ({
+
+        setValue(value: string) {
+            // To keep styles, parsing should be done before setting value
+            const { tokens, plain_text } = parseRichTextString(value, PATTERNS);
+            setTokens([...concatTokens(tokens)]);
+            prevTextRef.current = plain_text;
+        },
         toggleBold() {
             const { start, end } = selectionRef.current;
 
@@ -902,14 +970,8 @@ export default function RichTextInput({ ref }) {
             const { result } = splitTokens(tokens, start, end, { code: true });
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
-        },
-        setValue(value: string) {
-            // To keep styles, parsing should be done before setting value
-            const { tokens, plain_text } = parseRichTextString(value, PATTERNS);
-            setTokens([...concatTokens(tokens)]);
-            prevTextRef.current = plain_text;
         }
-    }))
+    }));
 
     return (
        <View style={{ position: "relative" }}>
@@ -922,17 +984,9 @@ export default function RichTextInput({ ref }) {
                 onSelectionChange={handleSelectionChange}
                 onChangeText={handleOnChangeText}
             >
-                {tokens.map((token, i) => {
-                    return (
-                        <Text key={i} style={[
-                            styles.text,
-                            ...Object.entries(token.annotations).map(([key, value]) => value ? styles[key] : null).filter(Boolean),
-                            token.annotations.underline && token.annotations.lineThrough && styles.underlineLineThrough
-                        ]}>
-                            {token.text}
-                        </Text>
-                    )
-                })}
+                <Text style={styles.text}>
+                    {tokens.map((token, i) => <Token key={i} token={token} />)}
+                </Text>
             </TextInput>
        </View>
     );
@@ -940,12 +994,14 @@ export default function RichTextInput({ ref }) {
 
 const styles = StyleSheet.create({
     textInput: {
-        fontSize: 20,
         width: "100%",
-        paddingHorizontal: 16
+        paddingHorizontal: 16,
+        fontSize: 20,
+
     },
     text: {
         color: "black",
+        position: "relative"
     },
     bold: {
         fontWeight: 'bold',
@@ -962,10 +1018,25 @@ const styles = StyleSheet.create({
     underlineLineThrough: {
         textDecorationLine: "underline line-through"
     },
+    codeContainer: {
+        backgroundColor: "lightgray",
+        paddingHorizontal: 4,
+        borderRadius: 4,
+        height: 24,
+        position: "absolute",
+        top: 10
+    },
     code: {
         fontFamily: "ui-monospace",
-        backgroundColor: "lightgray",
         color: "red",
-        paddingHorizontal: 6
+        fontSize: 20,
+        backgroundColor: "lightgray",
+    },
+    highlight: {
+        width: "100%",
+        position: "absolute",
+        padding: 20,
+        height: 24,
+        backgroundColor: "blue"
     }
 });
