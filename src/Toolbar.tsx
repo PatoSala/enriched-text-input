@@ -34,7 +34,11 @@ export default function Toolbar({
 
     return (
         <ToolbarContext.Provider value={ref}>
-            <ScrollView style={styles.toolbar} horizontal>
+            <ScrollView
+                style={styles.toolbar}
+                horizontal
+                keyboardShouldPersistTaps="always"
+            >
                 {children}
             </ScrollView>
         </ToolbarContext.Provider>

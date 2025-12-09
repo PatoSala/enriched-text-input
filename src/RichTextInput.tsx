@@ -987,24 +987,6 @@ export default function RichTextInput(props: RichTextInputProps) {
                 <Text style={styles.text}>
                     {tokens.map((token, i) => <Token key={i} token={token} />)}
                 </Text>
-                {/* {tokens.map((token, i) => {
-                    return (
-                        <Text
-                            key={i}
-                            style={[
-                                styles.text,
-                                token.annotations.bold && styles.bold,
-                                token.annotations.italic && styles.italic,
-                                token.annotations.lineThrough && styles.lineThrough,
-                                token.annotations.underline && styles.underline,
-                                token.annotations.underline && styles.lineThrough,
-                                token.annotations.code && styles.codeContainer
-                            ]}
-                        >
-                            {token.text}
-                        </Text>
-                    )
-                })} */}
             </TextInput>
        </View>
     );
@@ -1015,11 +997,10 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingHorizontal: 16,
         fontSize: 20,
-
+        zIndex: 1
     },
     text: {
         color: "black",
-        position: "relative"
     },
     bold: {
         fontWeight: 'bold',
@@ -1046,9 +1027,9 @@ const styles = StyleSheet.create({
     },
     code: {
         fontFamily: "ui-monospace",
-        color: "red",
+        color: "#EB5757",
         fontSize: 20,
-        backgroundColor: "lightgray",
+        backgroundColor: "rgba(135, 131, 120, .15)"
     },
     highlight: {
         width: "100%",
