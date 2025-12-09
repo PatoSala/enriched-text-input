@@ -28,7 +28,8 @@
     "example"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "release-it"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -37,6 +38,7 @@
     "react-native": "0.81.5"
   },
   "devDependencies": {
-    "metro-react-native-babel-preset": "^0.77.0"
+    "metro-react-native-babel-preset": "^0.77.0",
+    "release-it": "^19.0.6"
   }
 }
