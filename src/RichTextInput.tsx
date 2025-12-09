@@ -723,7 +723,7 @@ export default function RichTextInput(props: RichTextInputProps) {
                 tokens,
                 diff.start,
                 toSplit.annotations,
-                /* toSplit.annotations.code ? ` ${diff.added} ` :  */diff.added
+                diff.added
             );
             const plain_text = result.map(t => t.text).join("");
             setTokens([...concatTokens(result)]);
@@ -763,8 +763,8 @@ export default function RichTextInput(props: RichTextInputProps) {
 
             if (start === end && toSplit.annotations.bold) {
                 setToSplit({
-                    start: 0,
-                    end: 0,
+                    start,
+                    end,
                     annotations: {
                         ...toSplit.annotations,
                         bold: false
@@ -808,8 +808,8 @@ export default function RichTextInput(props: RichTextInputProps) {
 
             if (start === end && toSplit.annotations.italic ) {
                 setToSplit({
-                    start: 0,
-                    end: 0,
+                    start,
+                    end,
                     annotations: {
                         ...toSplit.annotations,
                         italic: false
@@ -850,8 +850,8 @@ export default function RichTextInput(props: RichTextInputProps) {
 
             if (start === end && toSplit.annotations.lineThrough) {
                 setToSplit({
-                    start: 0,
-                    end: 0,
+                    start,
+                    end,
                     annotations: {
                         ...toSplit.annotations,
                         lineThrough: false
@@ -987,6 +987,24 @@ export default function RichTextInput(props: RichTextInputProps) {
                 <Text style={styles.text}>
                     {tokens.map((token, i) => <Token key={i} token={token} />)}
                 </Text>
+                {/* {tokens.map((token, i) => {
+                    return (
+                        <Text
+                            key={i}
+                            style={[
+                                styles.text,
+                                token.annotations.bold && styles.bold,
+                                token.annotations.italic && styles.italic,
+                                token.annotations.lineThrough && styles.lineThrough,
+                                token.annotations.underline && styles.underline,
+                                token.annotations.underline && styles.lineThrough,
+                                token.annotations.code && styles.codeContainer
+                            ]}
+                        >
+                            {token.text}
+                        </Text>
+                    )
+                })} */}
             </TextInput>
        </View>
     );
