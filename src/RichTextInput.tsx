@@ -1,17 +1,9 @@
 import { useState, useImperativeHandle, useRef, useEffect } from "react";
 import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
 
-const exampleText = "_None_ *bold* _italic_ ~strikethrough~ none";
-
 interface Token {
     text: string;
-    annotations: {
-        bold: boolean;
-        italic: boolean;
-        lineThrough: boolean;
-        underline: boolean;
-        color: string;
-    }
+    annotations: Annotations
 }
 
 interface Diff {
@@ -25,6 +17,7 @@ interface Annotations {
     italic: boolean;
     lineThrough: boolean;
     underline: boolean;
+    code: boolean;
 }
 
 interface RichTextMatch {
@@ -39,6 +32,7 @@ const PATTERNS = [
   { style: "bold", regex: "\\*([^*]+)\\*" },
   { style: "italic", regex: "_([^_]+)_" },
   { style: "lineThrough", regex: "~([^~]+)~" },
+  { style: "code", regex: "`([^`]+)`" },
 ];
 
 function insertAt(str, index, substring) {
@@ -114,6 +108,7 @@ function concileAnnotations(prevAnnotations, nextAnnotations) {
     italic: nextAnnotations.italic ? !prevAnnotations.italic : prevAnnotations.italic,
     lineThrough: nextAnnotations.lineThrough ? !prevAnnotations.lineThrough : prevAnnotations.lineThrough,
     underline: nextAnnotations.underline ? !prevAnnotations.underline : prevAnnotations.underline,
+    code: nextAnnotations.code ? !prevAnnotations.code : prevAnnotations.code,
     /* color: nextAnnotations.color */
   };
 }
@@ -151,6 +146,7 @@ const parseRichTextString = (richTextString: string, patterns: { regex: string, 
                 italic: false,
                 lineThrough: false,
                 underline: false,
+                code: false
             }
         }
     ];
@@ -484,23 +480,6 @@ const splitTokens = (
             annotations: startToken.annotations
         }
 
-        // Note: the following conditionals are to prevent empty tokens.
-        // It would be ideal if instead of catching empty tokens we could write the correct insert logic to prevent them.
-        /* if (firstToken.text.length === 0 && lastToken.text.length === 0) {
-            updatedTokens.splice(startTokenIndex, 1, middleToken);
-            return { result: updatedTokens };
-        }
-
-        if (firstToken.text.length === 0) {
-            updatedTokens.splice(startTokenIndex, 1, middleToken, lastToken);
-            return { result: updatedTokens };
-        }
-
-        if (lastToken.text.length === 0) {
-            updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken);
-            return { result: updatedTokens };
-        } */
-
         updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken)
         return { result: updatedTokens.filter(token => token.text.length > 0) };
     }
@@ -560,24 +539,8 @@ const splitTokens = (
             }
         }
 
-        // Catch empty tokens. Empty tokens are always at the extremes.
-        if (firstToken.text.length === 0 && lastToken.text.length === 0) {
-            updatedTokens = updatedTokens.slice(0, startTokenIndex).concat([secondToken, ...updatedMiddleTokens, secondToLastToken]).concat(updatedTokens.slice(endTokenIndex + 1));
-            return { result: updatedTokens };
-        }
-
-        if (firstToken.text.length === 0) {
-            updatedTokens = updatedTokens.slice(0, startTokenIndex).concat([secondToken, ...updatedMiddleTokens, secondToLastToken, lastToken]).concat(updatedTokens.slice(endTokenIndex + 1));
-            return { result: updatedTokens };
-        }
-
-        if (lastToken.text.length === 0) {
-            updatedTokens = updatedTokens.slice(0, startTokenIndex).concat([firstToken, secondToken, ...updatedMiddleTokens, secondToLastToken]).concat(updatedTokens.slice(endTokenIndex + 1));
-            return { result: updatedTokens };
-        }
-
         updatedTokens = updatedTokens.slice(0, startTokenIndex).concat([firstToken, secondToken, ...updatedMiddleTokens, secondToLastToken, lastToken]).concat(updatedTokens.slice(endTokenIndex + 1));
-        return { result: updatedTokens };
+        return { result: updatedTokens.filter(token => token.text.length > 0) };
     }
 }
 
@@ -597,7 +560,7 @@ const concatTokens = (tokens: Token[]) => {
             prevToken.annotations.italic === token.annotations.italic &&
             prevToken.annotations.lineThrough === token.annotations.lineThrough &&
             prevToken.annotations.underline === token.annotations.underline &&
-            prevToken.annotations.color === token.annotations.color) {
+            prevToken.annotations.code === token.annotations.code) {
             prevToken.text += token.text;
             continue;
         }
@@ -618,9 +581,10 @@ export default function RichTextInput({ ref }) {
             italic: false,
             lineThrough: false,
             underline: false,
+            code: false
         }
     }]);
-
+    console.log(tokens);
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
@@ -630,6 +594,7 @@ export default function RichTextInput({ ref }) {
                     italic: false,
                     lineThrough: false,
                     underline: false,
+                    code: false
                 }
             }])
         }
@@ -651,6 +616,7 @@ export default function RichTextInput({ ref }) {
             italic: false,
             lineThrough: false,
             underline: false,
+            code: false
         }
     });
 
@@ -710,6 +676,7 @@ export default function RichTextInput({ ref }) {
                     italic: false,
                     lineThrough: false,
                     underline: false,
+                    code: false
                 }
             });
             prevTextRef.current = plain_text;
@@ -894,6 +861,48 @@ export default function RichTextInput({ ref }) {
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => inputRef.current.setSelection(start, end));
         },
+        toggleCode() {
+            const { start, end } = selectionRef.current;
+
+            if (start === end && toSplit.annotations.code ) {
+                setToSplit({
+                    start: 0,
+                    end: 0,
+                    annotations: {
+                        ...toSplit.annotations,
+                        code: false
+                    }
+                });
+                return;
+            }
+
+            if (start === end) {
+                setToSplit({
+                    start,
+                    end,
+                    annotations: {
+                        ...toSplit.annotations,
+                        code: true
+                    }
+                });
+                return;
+            }
+
+            if (start < end) {
+                setToSplit({
+                    start: end,
+                    end: end,
+                    annotations: {
+                        ...toSplit.annotations,
+                        code: true
+                    }
+                });
+            }
+
+            const { result } = splitTokens(tokens, start, end, { code: true });
+            setTokens([...concatTokens(result)]);
+            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
+        },
         setValue(value: string) {
             // To keep styles, parsing should be done before setting value
             const { tokens, plain_text } = parseRichTextString(value, PATTERNS);
@@ -936,7 +945,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16
     },
     text: {
-        color: "black"
+        color: "black",
     },
     bold: {
         fontWeight: 'bold',
@@ -952,5 +961,11 @@ const styles = StyleSheet.create({
     },
     underlineLineThrough: {
         textDecorationLine: "underline line-through"
+    },
+    code: {
+        fontFamily: "ui-monospace",
+        backgroundColor: "lightgray",
+        color: "red",
+        paddingHorizontal: 6
     }
 });

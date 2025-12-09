@@ -27,6 +27,7 @@ In theory, by only using JavaScript we are able to provide better cross-platform
 
 ## Known limitations
 - Inline images.
+- Padding.
 
 ## Installation
 ```
