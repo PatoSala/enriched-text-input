@@ -17,6 +17,7 @@ interface Annotations {
     italic: boolean;
     lineThrough: boolean;
     underline: boolean;
+    underlineLineThrough: boolean;
     code: boolean;
 }
 
@@ -33,10 +34,11 @@ interface RichTextInputProps {
 }
                         
 const PATTERNS = [
-  { style: "bold", regex: "\\*([^*]+)\\*", render: <Text style={{ fontWeight: "bold" }} /> },
-  { style: "italic", regex: "_([^_]+)_", render: <Text style={{ fontStyle: "italic" }} /> },
-  { style: "lineThrough", regex: "~([^~]+)~", render: <Text style={{ textDecorationLine: "line-through" }} /> },
-  { style: "code", regex: "`([^`]+)`", render: <Text style={{ fontFamily: "ui-monospace", backgroundColor: "lightgray", color: "red", paddingHorizontal: 6 }} /> },
+  { style: "bold", regex: "\\*([^*]+)\\*", render: Bold },
+  { style: "italic", regex: "_([^_]+)_", render: Italic },
+  { style: "lineThrough", regex: "~([^~]+)~", render: Strikethrough },
+  { style: "code", regex: "`([^`]+)`", render: Code },
+  { style: "underline", regex: "__([^_]+)__", render: Underline }
 ];
 
 function insertAt(str, index, substring) {
@@ -69,7 +71,7 @@ function findMatch(str: string, regexExpression: string) : RichTextMatch | null 
     : null;
 }
 
-function getRequiredLiterals(regexString) {
+function getRequiredLiterals(regexString: string) {
   // Strip leading/trailing slashes and flags (if user passed /.../ form)
   regexString = regexString.replace(/^\/|\/[a-z]*$/g, "");
 
@@ -106,15 +108,18 @@ function getRequiredLiterals(regexString) {
   };
 }
 
-function concileAnnotations(prevAnnotations, nextAnnotations) {
-  return {
-    bold: nextAnnotations.bold ? !prevAnnotations.bold : prevAnnotations.bold,
-    italic: nextAnnotations.italic ? !prevAnnotations.italic : prevAnnotations.italic,
-    lineThrough: nextAnnotations.lineThrough ? !prevAnnotations.lineThrough : prevAnnotations.lineThrough,
-    underline: nextAnnotations.underline ? !prevAnnotations.underline : prevAnnotations.underline,
-    code: nextAnnotations.code ? !prevAnnotations.code : prevAnnotations.code,
-    /* color: nextAnnotations.color */
-  };
+/**
+ * If 
+ */
+function concileAnnotations(prevAnnotations, newAnnotations) {
+  let updatedAnnotations = { ...prevAnnotations };
+
+  for (const key of Object.keys(newAnnotations)) {
+    newAnnotations[key]
+    ? updatedAnnotations[key] = !updatedAnnotations[key]
+    : updatedAnnotations[key] = newAnnotations[key];
+  }
+  return updatedAnnotations;
 }
 
 // Returns string modifications
@@ -145,13 +150,7 @@ const parseRichTextString = (richTextString: string, patterns: { regex: string, 
     let tokens = initalTokens || [
         {
             text: richTextString,
-            annotations: {
-                bold: false,
-                italic: false,
-                lineThrough: false,
-                underline: false,
-                code: false
-            }
+            annotations: {}
         }
     ];
     let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
@@ -192,6 +191,7 @@ const parseTokens = (tokens) => {
 
 // Inserts a token at the given index
 // Only when start === end
+// To-do: Instead of recieving annotations and text it could recieve a token.
 function insertToken(tokens: Token[], index: number, annotations: Annotations, text = "" ) {
     const updatedTokens = [...tokens];
 
@@ -227,30 +227,27 @@ function insertToken(tokens: Token[], index: number, annotations: Annotations, t
     // Middle token is the selected text
     let middleToken = {
         text: text,
-        annotations: concileAnnotations(startToken.annotations, annotations)
+        annotations: concileAnnotations(startToken.annotations, annotations) // prevAnnotations + newAnnotations
     }
 
     let lastToken = {
         text: startToken.text.slice(startIndex , startToken.text.length),
         annotations: startToken.annotations
     }
-
-    /**
-     * Note: the following conditionals are to prevent empty tokens.
-     * It would be ideal if instead of catching empty tokens we could write the correct insert logic to prevent them.
-     * Maybe use a filter instead?
-     */
     
     updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken);
-    
     return {
         result: updatedTokens.filter(token => token.text.length > 0)
     };
 }
 
-// Updates token content (add, remove, replace)
-// Note: need to support cross-token updates.
-// It's actually updating just the text of tokens
+/**
+ * Updates token content (add, remove, replace)
+ * Note: need to support cross-token updates.
+ * It's actually updating just the text of tokens
+ * To-do: Separate the logic of finding the corresponding token into another function.
+ * Instead of recieving a diff it could recieve an array of tokens to update.
+ */
 const updateTokens = (tokens: Token[], diff: Diff) => {
     let updatedTokens = [...tokens];
     const plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
@@ -412,9 +409,11 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
     }
 }
 
-// Updates annotations and splits tokens if necessary
-// Only when start !== end
-// To-do: Add support for multiple annotations
+/**
+ * Updates annotations and splits tokens if necessary. Only when start !== end.
+ * To-do: Add support for multiple annotations. [done].
+ * To-do: Separate the logic of finding the corresponding token into another function.
+ */
 const splitTokens = (
     tokens: Token[],
     start: number,
@@ -475,6 +474,11 @@ const splitTokens = (
         let middleToken = {
             // The replace method is used to remove the opening and closing rich text literal chars when parsing.
             text: startToken.text.slice(startIndex, endIndex).replace(withReplacement, ""),
+            /** 
+             * We need to concile previous annotations with new ones.
+             * Eg. If we are applying bold to middle token but start token already has bold, we need to toggle bold off.
+             * But if we are applying bold to middle token but start token does not have bold, we need to toggle bold on.
+             */
             annotations: concileAnnotations(startToken.annotations, annotations)
         }
 
@@ -560,11 +564,11 @@ const concatTokens = (tokens: Token[]) => {
 
         const prevToken = concatenedTokens[concatenedTokens.length - 1];
 
-        if (prevToken.annotations.bold === token.annotations.bold &&
-            prevToken.annotations.italic === token.annotations.italic &&
-            prevToken.annotations.lineThrough === token.annotations.lineThrough &&
-            prevToken.annotations.underline === token.annotations.underline &&
-            prevToken.annotations.code === token.annotations.code) {
+        /**
+         * If prev token has all the same annotations as current token, we add curent token text to prev token
+         * and continue looping without adding current token to concatened tokens array.
+         */
+        if (Object.keys(prevToken.annotations).every(key => prevToken.annotations[key] === token.annotations[key])) {
             prevToken.text += token.text;
             continue;
         }
@@ -575,16 +579,19 @@ const concatTokens = (tokens: Token[]) => {
     return concatenedTokens;
 }
 
-function Token({ token }) {
+interface TokenProps {
+    token: Token
+}
+
+function Token(props: TokenProps) {
+    const { token } = props;
     const { text, annotations } = token;
     const wrappers = [];
 
-    if (annotations.bold) wrappers.push(Bold);
-    if (annotations.italic) wrappers.push(Italic);
-    if (annotations.underline && annotations.lineThrough) wrappers.push(UnderlineStrikethrough);
-    if (annotations.underline) wrappers.push(Underline);
-    if (annotations.lineThrough) wrappers.push(Strikethrough);
-    if (annotations.code) wrappers.push(Code);
+    Object.keys(annotations).forEach(key => {
+        // If annotation has a truthy value, add the corresponding wrapper.
+        if (annotations[key]) wrappers.push(PATTERNS.find(p => p.style === key).render);
+    });
 
     return wrappers.reduce(
         (children, Wrapper) => <Wrapper>{children}</Wrapper>,
