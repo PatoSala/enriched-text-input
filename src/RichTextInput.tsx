@@ -38,7 +38,10 @@ const PATTERNS = [
   { style: "italic", regex: "_([^_]+)_", render: Italic },
   { style: "lineThrough", regex: "~([^~]+)~", render: Strikethrough },
   { style: "code", regex: "`([^`]+)`", render: Code },
-  { style: "underline", regex: "__([^_]+)__", render: Underline }
+  { style: "underline", regex: "__([^_]+)__", render: Underline },
+  { style: "heading", regex: null, render: Heading },
+  { style: "subHeading", regex: null, render: SubHeading },
+  { style: "subSubHeading", regex: null, render: SubSubHeading }
 ];
 
 function insertAt(str, index, substring) {
@@ -157,7 +160,7 @@ const parseRichTextString = (richTextString: string, patterns: { regex: string, 
     let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
 
     for (const pattern of patterns) {
-        let match = findMatch(plain_text, pattern.regex);
+        let match = pattern.regex ? findMatch(plain_text, pattern.regex) : null;
         
         if (match) {
             const { result: splittedTokens } = splitTokens(
@@ -636,6 +639,24 @@ function UnderlineStrikethrough({ children }) {
     )
 }
 
+function Heading({ children }) {
+    return (
+        <Text style={styles.heading}>{children}</Text>
+    )
+}
+
+function SubHeading({ children }) {
+    return (
+        <Text style={styles.subHeading}>{children}</Text>
+    )
+}
+
+function SubSubHeading({ children }) {
+    return (
+        <Text style={styles.subSubHeading}>{children}</Text>
+    )
+}
+
 export default function RichTextInput(props: RichTextInputProps) {
     const {
         ref
@@ -845,5 +866,17 @@ const styles = StyleSheet.create({
         padding: 20,
         height: 24,
         backgroundColor: "blue"
+    },
+    heading: {
+        fontSize: 32,
+        fontWeight: "bold"
+    },
+    subHeading: {
+        fontSize: 28,
+        fontWeight: "bold"
+    },
+    subSubHeading: {
+        fontSize: 24,
+        fontWeight: "bold"
     }
 });

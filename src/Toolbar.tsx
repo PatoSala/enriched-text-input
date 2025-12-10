@@ -101,6 +101,51 @@ Toolbar.Underline = () => {
     )
 }
 
+Toolbar.Heading = () => {
+    const richTextInputRef = useToolbarContext();
+
+    const handleHeading = () => {
+        richTextInputRef.current.toggleStyle("heading");
+    }
+
+    return (
+        <TouchableOpacity style={[styles.toolbarButton, styles.heading]} onPress={handleHeading}>
+            <FontAwesome6 name="heading" size={16} color="black" />
+            <FontAwesome6 name="1" size={16} color="black" />
+        </TouchableOpacity>
+    )
+}
+
+Toolbar.SubHeading = () => {
+    const richTextInputRef = useToolbarContext();
+
+    const handleSubHeading = () => {
+        richTextInputRef.current.toggleStyle("subHeading");
+    }
+
+    return (
+        <TouchableOpacity style={[styles.toolbarButton, styles.heading]} onPress={handleSubHeading}>
+            <FontAwesome6 name="heading" size={16} color="black" />
+            <FontAwesome6 name="2" size={16} color="black" />
+        </TouchableOpacity>
+    )
+}
+
+Toolbar.SubSubHeading = () => {
+    const richTextInputRef = useToolbarContext();
+
+    const handleSubSubHeading = () => {
+        richTextInputRef.current.toggleStyle("subSubHeading");
+    }
+
+    return (
+        <TouchableOpacity style={[styles.toolbarButton, styles.heading]} onPress={handleSubSubHeading}>
+            <FontAwesome6 name="heading" size={16} color="black" />
+            <FontAwesome6 name="3" size={16} color="black" />
+        </TouchableOpacity>
+    )
+}
+
 Toolbar.Code = () => {
     const richTextInputRef = useToolbarContext();
 
@@ -156,5 +201,9 @@ const styles = StyleSheet.create({
     keyboardArrowContainer: {
         position: "absolute",
         bottom: 13
+    },
+    heading: {
+        flexDirection: "row",
+        gap: 4
     }
 });
