@@ -798,7 +798,9 @@ export default function RichTextInput(props: RichTextInputProps) {
 
             const { result } = splitTokens(tokens, start, end, { [style]: true });
             setTokens([...concatTokens(result)]);
-            inputRef.current.setSelection(start, end);
+            requestAnimationFrame(() => {
+                inputRef.current.setSelection(start, end);
+            })
         }
     }));
 

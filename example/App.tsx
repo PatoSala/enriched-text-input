@@ -13,9 +13,6 @@ export default function App() {
       </View>
       <View style={{ alignSelf: "end"}}>
         <Toolbar richTextInputRef={richTextInputRef}>
-          <Toolbar.Heading/>
-          <Toolbar.SubHeading/>
-          <Toolbar.SubSubHeading/>
           <Toolbar.Bold />
           <Toolbar.Italic />
           <Toolbar.Underline />
