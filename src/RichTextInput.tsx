@@ -38,7 +38,9 @@ const PATTERNS = [
   { style: "italic", regex: "_([^_]+)_", render: Italic },
   { style: "lineThrough", regex: "~([^~]+)~", render: Strikethrough },
   { style: "code", regex: "`([^`]+)`", render: Code },
-  { style: "underline", regex: "__([^_]+)__", render: Underline }
+  { style: "underline", regex: "__([^_]+)__", render: Underline },
+  { style: "link", regex: "/^(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/[a-zA-Z0-9]\.[^\s]{2,}|[a-zA-Z0-9]\.[^\s]{2,})$/i", render: Link },
+  { style: "mention", regex: "@([^@]+)", render: Mention }
 ];
 
 function insertAt(str, index, substring) {
@@ -626,13 +628,27 @@ function Underline({ children }) {
 
 function Strikethrough({ children }) {
     return (
-        <Text style={styles.lineThrough}>{children}</Text>
+        <>
+            <Text style={styles.lineThrough}>{children}</Text>
+        </>
     )
 }
 
 function UnderlineStrikethrough({ children }) {
     return (
         <Text style={styles.underlineLineThrough}>{children}</Text>
+    )
+}
+
+function Mention({ children }) {
+    return (
+        <Text style={styles.mention}>{children}</Text>
+    )
+}
+
+function Link({ children }) {
+    return (
+        <Text style={styles.link}>{children}</Text>
     )
 }
 
@@ -653,7 +669,7 @@ export default function RichTextInput(props: RichTextInputProps) {
             code: false
         }
     }]);
-
+    console.log(tokens);
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
@@ -839,11 +855,12 @@ const styles = StyleSheet.create({
         fontSize: 20,
         backgroundColor: "rgba(135, 131, 120, .15)"
     },
-    highlight: {
-        width: "100%",
-        position: "absolute",
-        padding: 20,
-        height: 24,
-        backgroundColor: "blue"
+    link: {
+        color: "#0000ee",
+        textDecorationLine: "underline"
+    },
+    mention: {
+        color: "#0000ee",
+        textDecorationLine: "underline"
     }
 });

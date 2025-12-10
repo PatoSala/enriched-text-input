@@ -115,6 +115,34 @@ Toolbar.Code = () => {
     )
 }
 
+Toolbar.Link = () => {
+    const richTextInputRef = useToolbarContext();
+
+    const handleLink = () => {
+        richTextInputRef.current.toggleStyle("link");
+    }
+
+    return (
+        <TouchableOpacity style={styles.toolbarButton} onPress={handleLink}>
+            <FontAwesome6 name="link" size={16} color="black" />
+        </TouchableOpacity>
+    )
+}
+
+Toolbar.Mention = () => {
+    const richTextInputRef = useToolbarContext();
+
+    const handleMention = () => {
+        richTextInputRef.current.toggleStyle("mention");
+    }
+
+    return (
+        <TouchableOpacity style={styles.toolbarButton} onPress={handleMention}>
+            <FontAwesome6 name="at" size={16} color="black" />
+        </TouchableOpacity>
+    )
+}
+
 Toolbar.Keyboard = () => {
     const handleKeyboardDismiss = () => {
         Keyboard.dismiss();
