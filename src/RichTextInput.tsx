@@ -109,7 +109,7 @@ function getRequiredLiterals(regexString: string) {
 }
 
 /**
- * If 
+ * If prev token contains new annotation, negate prev. Else, use new annotation.
  */
 function concileAnnotations(prevAnnotations, newAnnotations) {
   let updatedAnnotations = { ...prevAnnotations };
@@ -119,6 +119,7 @@ function concileAnnotations(prevAnnotations, newAnnotations) {
     ? updatedAnnotations[key] = !updatedAnnotations[key]
     : updatedAnnotations[key] = newAnnotations[key];
   }
+
   return updatedAnnotations;
 }
 
@@ -652,7 +653,7 @@ export default function RichTextInput(props: RichTextInputProps) {
             code: false
         }
     }]);
-    console.log(tokens);
+
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
@@ -679,13 +680,7 @@ export default function RichTextInput(props: RichTextInputProps) {
     const [toSplit, setToSplit] = useState({
         start: 0,
         end: 0,
-        annotations: {
-            bold: false,
-            italic: false,
-            lineThrough: false,
-            underline: false,
-            code: false
-        }
+        annotations: {}
     });
 
     const handleSelectionChange = ({ nativeEvent }) => {
@@ -722,10 +717,7 @@ export default function RichTextInput(props: RichTextInputProps) {
             return;
         }
 
-        if (diff.start === toSplit.start
-            && diff.start === toSplit.end
-            && diff.added.length > 0
-            && Object.values(toSplit.annotations).includes(true)) {
+        if (Object.values(toSplit.annotations).some(Boolean) && diff.start === toSplit.start && diff.start === toSplit.end) {
             const { result } = insertToken(
                 tokens,
                 diff.start,
@@ -733,24 +725,19 @@ export default function RichTextInput(props: RichTextInputProps) {
                 diff.added
             );
             const plain_text = result.map(t => t.text).join("");
-            setTokens([...concatTokens(result)]);
+            setTokens(concatTokens(result));
 
             // Reset
             setToSplit({
                 start: 0,
                 end: 0,
-                annotations: {
-                    bold: false,
-                    italic: false,
-                    lineThrough: false,
-                    underline: false,
-                    code: false
-                }
+                annotations: {}
             });
             prevTextRef.current = plain_text;
             return;
         }
 
+        // Default update
         const { updatedTokens, plain_text} = updateTokens(tokens, diff);
         
         setTokens([...concatTokens(updatedTokens)]); 
@@ -765,29 +752,14 @@ export default function RichTextInput(props: RichTextInputProps) {
             setTokens([...concatTokens(tokens)]);
             prevTextRef.current = plain_text;
         },
-        toggleBold() {
+        toggleStyle(style: string) {
             const { start, end } = selectionRef.current;
-
-            if (start === end && toSplit.annotations.bold) {
-                setToSplit({
-                    start,
-                    end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        bold: false
-                    }
-                });
-                return;
-            }
 
             if (start === end) {
                 setToSplit({
                     start,
                     end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        bold: true
-                    }
+                    annotations: concileAnnotations(toSplit.annotations, { [style]: true })
                 });
                 return;
             }
@@ -799,184 +771,13 @@ export default function RichTextInput(props: RichTextInputProps) {
                 setToSplit({
                     start: end,
                     end: end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        bold: true
-                    }
+                    annotations: concileAnnotations(toSplit.annotations, { [style]: true })
                 })
             }
 
-            const { result } = splitTokens(tokens, start, end, { bold: true });
+            const { result } = splitTokens(tokens, start, end, { [style]: true });
             setTokens([...concatTokens(result)]);
-            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
-        },
-        toggleItalic() {
-            const { start, end } = selectionRef.current;
-
-            if (start === end && toSplit.annotations.italic ) {
-                setToSplit({
-                    start,
-                    end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        italic: false
-                    }
-                });
-                return;
-            }
-
-            if (start === end) {
-                setToSplit({
-                    start,
-                    end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        italic: true
-                    }
-                });
-                return;
-            }
-
-            if (start < end) {
-                setToSplit({
-                    start: end,
-                    end: end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        italic: true
-                    }
-                });
-            }
-
-            const { result } = splitTokens(tokens, start, end, { italic: true });
-            setTokens([...concatTokens(result)]);
-            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
-        },
-        toggleLineThrough() {
-            const { start, end } = selectionRef.current;
-
-            if (start === end && toSplit.annotations.lineThrough) {
-                setToSplit({
-                    start,
-                    end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        lineThrough: false
-                    }
-                });
-                return;
-            }
-
-            if (start === end) {
-                setToSplit({
-                    start,
-                    end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        lineThrough: true
-                    }
-                });
-                return;
-            }
-
-            if (start < end) {
-                setToSplit({
-                    start: end,
-                    end: end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        lineThrough: true
-                    }
-                })
-            }
-
-            const { result } = splitTokens(tokens, start, end, { lineThrough: true });
-            setTokens([...concatTokens(result)]);
-            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
-        },
-        toggleUnderline() {
-            const { start, end } = selectionRef.current;
-
-            if (start === end && toSplit.annotations.underline) {
-                setToSplit({
-                    start: 0,
-                    end: 0,
-                    annotations: {
-                        ...toSplit.annotations,
-                        underline: false
-                    }
-                });
-                return;
-            }
-
-            if (start === end) {
-                setToSplit({
-                    start,
-                    end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        underline: true
-                    }
-                });
-                return;
-            }
-
-            if (start < end) {
-                setToSplit({
-                    start: end,
-                    end: end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        underline: true
-                    }
-                })
-            }
-
-            const { result } = splitTokens(tokens, start, end, { underline: true });
-            setTokens([...concatTokens(result)]);
-            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
-        },
-        toggleCode() {
-            const { start, end } = selectionRef.current;
-
-            if (start === end && toSplit.annotations.code ) {
-                setToSplit({
-                    start: 0,
-                    end: 0,
-                    annotations: {
-                        ...toSplit.annotations,
-                        code: false
-                    }
-                });
-                return;
-            }
-
-            if (start === end) {
-                setToSplit({
-                    start,
-                    end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        code: true
-                    }
-                });
-                return;
-            }
-
-            if (start < end) {
-                setToSplit({
-                    start: end,
-                    end: end,
-                    annotations: {
-                        ...toSplit.annotations,
-                        code: true
-                    }
-                });
-            }
-
-            const { result } = splitTokens(tokens, start, end, { code: true });
-            setTokens([...concatTokens(result)]);
-            requestAnimationFrame(() => inputRef.current.setSelection(start, end));
+            inputRef.current.setSelection(start, end);
         }
     }));
 

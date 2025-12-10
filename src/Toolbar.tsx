@@ -49,7 +49,7 @@ Toolbar.Bold = () => {
     const richTextInputRef = useToolbarContext();
 
     const handleBold = () => {
-        richTextInputRef.current.toggleBold();
+        richTextInputRef.current.toggleStyle("bold");
     }
 
     return (
@@ -63,7 +63,7 @@ Toolbar.Italic = () => {
     const richTextInputRef = useToolbarContext();
 
     const handleItalic = () => {
-        richTextInputRef.current.toggleItalic();
+        richTextInputRef.current.toggleStyle("italic");
     }
 
     return (
@@ -77,7 +77,7 @@ Toolbar.Strikethrough = () => {
     const richTextInputRef = useToolbarContext();
 
     const handleLineThrough = () => {
-        richTextInputRef.current.toggleLineThrough();
+        richTextInputRef.current.toggleStyle("lineThrough");
     }
 
     return (
@@ -91,7 +91,7 @@ Toolbar.Underline = () => {
     const richTextInputRef = useToolbarContext();
 
     const handleUnderline = () => {
-        richTextInputRef.current.toggleUnderline();
+        richTextInputRef.current.toggleStyle("underline");
     }
 
     return (
@@ -105,7 +105,7 @@ Toolbar.Code = () => {
     const richTextInputRef = useToolbarContext();
 
     const handleCode = () => {
-        richTextInputRef.current.toggleCode();
+        richTextInputRef.current.toggleStyle("code");
     }
 
     return (
