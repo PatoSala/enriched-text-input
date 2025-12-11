@@ -1,15 +1,38 @@
 import { useRef } from 'react';
-import { StyleSheet, View, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity } from 'react-native';
+import { FontAwesome6 } from '@expo/vector-icons';
+import { RichTextInput, Toolbar, PATTERNS } from 'enriched-text-input';
 
-import { RichTextInput, Toolbar } from 'enriched-text-input';
+function Comment({ children }) {
+  return (
+    <Text style={{
+      backgroundColor: "rgba(255, 203, 0, .12)",
+      textDecorationLine: "underline",
+      textDecorationColor: "rgba(255, 203, 0, .35)",
+    }}>
+      {children}
+    </Text>
+  )
+}
 
 export default function App() {
   const richTextInputRef = useRef(null);
 
+  const customPatterns = [
+    ...PATTERNS,
+    { style: "comment", regex: null, render: Comment }
+  ];
+
+  const handleComment = () => {
+    richTextInputRef.current?.toggleStyle("comment");
+  }
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={{ flex: 1 }}>
-        <RichTextInput ref={richTextInputRef}/>
+        <RichTextInput
+          ref={richTextInputRef}
+          patterns={customPatterns}/>
       </View>
       <View style={{ alignSelf: "end"}}>
         <Toolbar richTextInputRef={richTextInputRef}>
@@ -18,6 +41,10 @@ export default function App() {
           <Toolbar.Underline />
           <Toolbar.Strikethrough />
           <Toolbar.Code />
+          <TouchableOpacity style={styles.toolbarButton} onPress={handleComment}>
+            <FontAwesome6 name="comment-alt" size={16} color="black" />
+          </TouchableOpacity>
+
           <Toolbar.Keyboard />
         </Toolbar>
       </View>
@@ -31,4 +58,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingTop: 120
   },
+  toolbarButton: {
+      height: 50,
+      width: 50,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center"
+  }
 });

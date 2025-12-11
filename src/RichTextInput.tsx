@@ -1,4 +1,4 @@
-import { useState, useImperativeHandle, useRef, useEffect } from "react";
+import { useState, useImperativeHandle, useRef, useEffect, ReactElement, JSX } from "react";
 import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
 
 interface Token {
@@ -29,11 +29,18 @@ interface RichTextMatch {
     expression: string;
 }
 
+interface Pattern {
+    regex: string;
+    style: string;
+    render: any
+}
+
 interface RichTextInputProps {
-    ref: any
+    ref: any;
+    patterns?: Pattern[]
 }
                         
-const PATTERNS = [
+export const PATTERNS : Pattern[] = [
   { style: "bold", regex: "\\*([^*]+)\\*", render: Bold },
   { style: "italic", regex: "_([^_]+)_", render: Italic },
   { style: "lineThrough", regex: "~([^~]+)~", render: Strikethrough },
@@ -584,17 +591,18 @@ const concatTokens = (tokens: Token[]) => {
 }
 
 interface TokenProps {
-    token: Token
+    token: Token;
+    patterns: Pattern[]
 }
 
-function Token(props: TokenProps) {
-    const { token } = props;
+function Token(props: TokenProps) : JSX.Element {
+    const { token, patterns } = props;
     const { text, annotations } = token;
     const wrappers = [];
 
     Object.keys(annotations).forEach(key => {
         // If annotation has a truthy value, add the corresponding wrapper.
-        if (annotations[key]) wrappers.push(PATTERNS.find(p => p.style === key).render);
+        if (annotations[key]) wrappers.push(patterns.find(p => p.style === key).render);
     });
 
     return wrappers.reduce(
@@ -659,7 +667,8 @@ function SubSubHeading({ children }) {
 
 export default function RichTextInput(props: RichTextInputProps) {
     const {
-        ref
+        ref,
+        patterns = PATTERNS
     } = props;
 
     const inputRef = useRef<TextInput>(null);
@@ -713,7 +722,7 @@ export default function RichTextInput(props: RichTextInputProps) {
 
         let match : RichTextMatch | null = null;
 
-        for (const pattern of PATTERNS) {
+        for (const pattern of patterns) {
             match = findMatch(nextText, pattern.regex);
             if (match) break;
         }
@@ -721,7 +730,7 @@ export default function RichTextInput(props: RichTextInputProps) {
         if (match) {
             // Check token containing match
             // If token already haves this annotation, do not format and perform a simple updateToken.
-            const annotation = PATTERNS.find(p => p.regex === match.expression);
+            const annotation = patterns.find(p => p.regex === match.expression);
             const { result } = splitTokens(
                 tokens,
                 match.start,
@@ -769,7 +778,7 @@ export default function RichTextInput(props: RichTextInputProps) {
 
         setValue(value: string) {
             // To keep styles, parsing should be done before setting value
-            const { tokens, plain_text } = parseRichTextString(value, PATTERNS);
+            const { tokens, plain_text } = parseRichTextString(value, patterns);
             setTokens([...concatTokens(tokens)]);
             prevTextRef.current = plain_text;
         },
@@ -816,7 +825,7 @@ export default function RichTextInput(props: RichTextInputProps) {
                 onChangeText={handleOnChangeText}
             >
                 <Text style={styles.text}>
-                    {tokens.map((token, i) => <Token key={i} token={token} />)}
+                    {tokens.map((token, i) => <Token key={i} token={token} patterns={patterns}/>)}
                 </Text>
             </TextInput>
        </View>
