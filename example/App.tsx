@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity, Button } from 'react-native';
+import { useRef, useState } from 'react';
+import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity, Button, TextInput } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { RichTextInput, Toolbar, PATTERNS } from 'enriched-text-input';
 
@@ -16,6 +16,7 @@ function Comment({ children }) {
 }
 
 export default function App() {
+  const [rawValue, setRawValue] = useState("");
   const richTextInputRef = useRef(null);
 
   const customPatterns = [
@@ -35,12 +36,21 @@ export default function App() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={{ flex: 1 }}>
+        {/* <TextInput
+          style={{ fontSize: 20, padding: 16 }}
+          value={rawValue}
+          onChangeText={(text) => setRawValue(text)}
+        />
+        <Button
+          title='Set rich text string'
+          onPress={() => richTextInputRef.current?.setValue(rawValue)}
+        /> */}
         <RichTextInput
           ref={richTextInputRef}
           patterns={customPatterns}/>
 
           <Button
-            title='Get rich text string'
+            title='Get rich text string (check console)'
             onPress={handleGetRichText}
             />
       </View>
