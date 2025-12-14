@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity, Button } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { RichTextInput, Toolbar, PATTERNS } from 'enriched-text-input';
 
@@ -27,12 +27,22 @@ export default function App() {
     richTextInputRef.current?.toggleStyle("comment");
   }
 
+  const handleGetRichText = () => {
+    const richText = richTextInputRef.current?.getRichText();
+    console.log(richText);
+  }
+
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={{ flex: 1 }}>
         <RichTextInput
           ref={richTextInputRef}
           patterns={customPatterns}/>
+
+          <Button
+            title='Get rich text string'
+            onPress={handleGetRichText}
+            />
       </View>
       <View style={{ alignSelf: "end"}}>
         <Toolbar richTextInputRef={richTextInputRef}>

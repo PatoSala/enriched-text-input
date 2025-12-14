@@ -1,5 +1,6 @@
 import { useState, useImperativeHandle, useRef, useEffect, ReactElement, JSX } from "react";
 import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
+import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 interface Token {
     text: string;
@@ -196,8 +197,21 @@ const parseRichTextString = (richTextString: string, patterns: { regex: string, 
 }
 
 // Returns a rich text string
-const parseTokens = (tokens) => {
-    
+const parseTokens = (tokens: Token[], patterns: Pattern[]) => {
+    return tokens.map(token => {
+        const { text, annotations } = token;
+        const wrappers = [];
+
+        Object.keys(annotations).forEach(key => {
+            // If annotation has a truthy value, add the corresponding wrapper.
+            if (annotations[key]) wrappers.push(getRequiredLiterals(patterns.find(p => p.style === key).regex));
+        });
+
+        return wrappers.reduce(
+            (children, Wrapper) => `${Wrapper.opening}${children}${Wrapper.closing}`,
+            text
+        );
+    }).join("");
 }
 
 // Inserts a token at the given index
@@ -781,6 +795,9 @@ export default function RichTextInput(props: RichTextInputProps) {
             const { tokens, plain_text } = parseRichTextString(value, patterns);
             setTokens([...concatTokens(tokens)]);
             prevTextRef.current = plain_text;
+        },
+        getRichText() {
+            return parseTokens(tokens, patterns);
         },
         toggleStyle(style: string) {
             const { start, end } = selectionRef.current;
