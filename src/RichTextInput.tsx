@@ -14,12 +14,7 @@ interface Diff {
 }
 
 interface Annotations {
-    bold: boolean;
-    italic: boolean;
-    lineThrough: boolean;
-    underline: boolean;
-    underlineLineThrough: boolean;
-    code: boolean;
+    [key: string]: boolean | string | null
 }
 
 interface RichTextMatch {
@@ -33,23 +28,31 @@ interface RichTextMatch {
 interface Pattern {
     regex: string;
     style: string;
-    render: any
+    render: any;
+    opening?: string;
+    closing?: string;
 }
 
 interface RichTextInputProps {
     ref: any;
     patterns?: Pattern[]
 }
-                        
+
+/**
+ * Note: maybe instead of using regex we could just define an "opening" and "closing" char.
+ * If both are defined we look for a match that looks like {opening}{content}{closing}.
+ * If just opening is defined, we look for a match that looks like {opening}{content}.
+ * Closing can not be defined if opening is not defined.
+ */
 export const PATTERNS : Pattern[] = [
-  { style: "bold", regex: "\\*([^*]+)\\*", render: Bold },
-  { style: "italic", regex: "_([^_]+)_", render: Italic },
-  { style: "lineThrough", regex: "~([^~]+)~", render: Strikethrough },
-  { style: "code", regex: "`([^`]+)`", render: Code },
-  { style: "underline", regex: "__([^_]+)__", render: Underline },
-  { style: "heading", regex: null, render: Heading },
-  { style: "subHeading", regex: null, render: SubHeading },
-  { style: "subSubHeading", regex: null, render: SubSubHeading }
+  { style: "bold", regex: "\\*([^*]+)\\*", render: Bold, opening: "*", closing: "*" },
+  { style: "italic", regex: "_([^_]+)_", render: Italic, opening: "_", closing: "_" },
+  { style: "lineThrough", regex: "~([^~]+)~", render: Strikethrough, opening: "~", closing: "~" },
+  { style: "code", regex: "`([^`]+)`", render: Code, opening: "`", closing: "`" },
+  { style: "underline", regex: "__([^_]+)__", render: Underline, opening: "__", closing: "__" },
+  { style: "heading", regex: null, render: Heading, opening: "#", closing: null },
+  { style: "subHeading", regex: null, render: SubHeading, opening: "##", closing: null },
+  { style: "subSubHeading", regex: null, render: SubSubHeading, opening: "###", closing: null }
 ];
 
 function insertAt(str, index, substring) {
@@ -157,58 +160,61 @@ function diffStrings(prev, next) : Diff {
   };
 }
 
-// Returns an array of tokens
-const parseRichTextString = (richTextString: string, patterns: { regex: string, style: string }[], initalTokens = null) => {
-    let tokens = initalTokens || [
+/** 
+ * Parse rich text string into tokens.
+ */
+const parseRichTextStringV2 = (richTextString: string, patterns: Pattern[])
+: { tokens: Token[], plain_text: string } => {
+    let copyOfString = richTextString;
+    let tokens : Token[] = [
         {
-            text: richTextString,
+            text: copyOfString,
             annotations: {}
         }
     ];
-    let plain_text = tokens.reduce((acc, curr) => acc + curr.text, "");
 
     for (const pattern of patterns) {
-        let match = pattern.regex ? findMatch(plain_text, pattern.regex) : null;
-        
-        if (match) {
-            const { result: splittedTokens } = splitTokens(
-                tokens,
-                match.start,
-                match.end - 1,
-                { [pattern.style]: true },
-                getRequiredLiterals(match.expression).opening
-            );
-            tokens = splittedTokens;
-            plain_text = splittedTokens.reduce((acc, curr) => acc + curr.text, "");
-            
-            const parsed = parseRichTextString(tokens, patterns, tokens);
-            
-            return {
-                tokens: parsed.tokens,
-                plain_text: parsed.plain_text
+        let evenCount = 0;
+
+        for (const char of copyOfString) {
+            if (pattern.opening && pattern.closing) {
+                if (evenCount < 2 && char === pattern.opening) {
+                    evenCount++;
+                }
+                if (evenCount === 2 && char === pattern.closing) {
+                    const openingIndex = copyOfString.indexOf(pattern.opening);
+                    const closingIndex = copyOfString.indexOf(pattern.closing, openingIndex + 1);
+                    
+                    const { result, plain_text } = splitTokens(tokens, openingIndex, closingIndex, { [pattern.style]: true }, pattern.opening);
+                    tokens = result;
+                    copyOfString = plain_text;
+                }
             }
         }
     }
 
     return {
-        tokens: tokens.filter(token => token.text.length > 0),
-        plain_text: plain_text
-    }
+        tokens,
+        plain_text: copyOfString
+    };
 }
 
-// Returns a rich text string
+/**
+ * Parse tokens into rich text string.
+ */
 const parseTokens = (tokens: Token[], patterns: Pattern[]) => {
     return tokens.map(token => {
         const { text, annotations } = token;
+        // Rich text wrappers (opening and closing chars)
         const wrappers = [];
 
-        Object.keys(annotations).forEach(key => {
+        patterns.forEach(pattern => {
             // If annotation has a truthy value, add the corresponding wrapper.
-            if (annotations[key]) wrappers.push(getRequiredLiterals(patterns.find(p => p.style === key).regex));
+            if (annotations[pattern.style]) wrappers.push(pattern.opening);
         });
 
         return wrappers.reduce(
-            (children, Wrapper) => `${Wrapper.opening}${children}${Wrapper.closing}`,
+            (children, wrapper) => `${wrapper}${children}${wrapper}`,
             text
         );
     }).join("");
@@ -268,7 +274,6 @@ function insertToken(tokens: Token[], index: number, annotations: Annotations, t
 
 /**
  * Updates token content (add, remove, replace)
- * Note: need to support cross-token updates.
  * It's actually updating just the text of tokens
  * To-do: Separate the logic of finding the corresponding token into another function.
  * Instead of recieving a diff it could recieve an array of tokens to update.
@@ -436,7 +441,6 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
 
 /**
  * Updates annotations and splits tokens if necessary. Only when start !== end.
- * To-do: Add support for multiple annotations. [done].
  * To-do: Separate the logic of finding the corresponding token into another function.
  */
 const splitTokens = (
@@ -514,7 +518,10 @@ const splitTokens = (
         }
 
         updatedTokens.splice(startTokenIndex, 1, firstToken, middleToken, lastToken)
-        return { result: updatedTokens.filter(token => token.text.length > 0) };
+        return {
+            result: updatedTokens.filter(token => token.text.length > 0),
+            plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, "")
+        };
     }
 
     // Cross-token selection
@@ -573,11 +580,14 @@ const splitTokens = (
         }
 
         updatedTokens = updatedTokens.slice(0, startTokenIndex).concat([firstToken, secondToken, ...updatedMiddleTokens, secondToLastToken, lastToken]).concat(updatedTokens.slice(endTokenIndex + 1));
-        return { result: updatedTokens.filter(token => token.text.length > 0) };
+        return {
+            result: updatedTokens.filter(token => token.text.length > 0),
+            plain_text: updatedTokens.reduce((acc, curr) => acc + curr.text, "")
+        };
     }
 }
 
-// Concats tokens containing similar annotations
+// Concats tokens containing same annotations
 const concatTokens = (tokens: Token[]) => {
     let concatenedTokens = [];
 
@@ -593,7 +603,8 @@ const concatTokens = (tokens: Token[]) => {
          * If prev token has all the same annotations as current token, we add curent token text to prev token
          * and continue looping without adding current token to concatened tokens array.
          */
-        if (Object.keys(prevToken.annotations).every(key => prevToken.annotations[key] === token.annotations[key])) {
+        const prevTokenAnnotations = Object.keys(prevToken.annotations);
+        if (prevTokenAnnotations.length > 0 && prevTokenAnnotations.every(key => prevToken.annotations[key] === token.annotations[key])) {
             prevToken.text += token.text;
             continue;
         }
@@ -614,11 +625,10 @@ function Token(props: TokenProps) : JSX.Element {
     const { text, annotations } = token;
     const wrappers = [];
 
-    Object.keys(annotations).forEach(key => {
+    patterns.forEach(pattern => {
         // If annotation has a truthy value, add the corresponding wrapper.
-        if (annotations[key]) wrappers.push(patterns.find(p => p.style === key).render);
+        if (annotations[pattern.style]) wrappers.push(pattern.render);
     });
-
     return wrappers.reduce(
         (children, Wrapper) => <Wrapper>{children}</Wrapper>,
         text
@@ -697,7 +707,7 @@ export default function RichTextInput(props: RichTextInputProps) {
             code: false
         }
     }]);
-
+    console.log("Tokens", tokens);
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
@@ -719,8 +729,14 @@ export default function RichTextInput(props: RichTextInputProps) {
      */
     const prevTextRef = useRef(tokens.map(t => t.text).join(""));
 
-    // Find a better name
-    // To-do: Allow for multiple styles at once.
+    /**
+     * To-do: Find a better name.
+     * toSplit state is used to toggle styles when selection length === 0 (start === end).
+     * Eg, if user is typing with no styles applied and then presses the "bold" button with no text selected,
+     * the text to be inserted after that press should be styled as bold.
+     * The same happens to toggle of a style. If user is typing in "bold" and presses the "bold" button again,
+     * the text to be inserted after that press should not be styled as bold.
+     */
     const [toSplit, setToSplit] = useState({
         start: 0,
         end: 0,
@@ -741,6 +757,9 @@ export default function RichTextInput(props: RichTextInputProps) {
             if (match) break;
         }
 
+        /**
+         * Note: refactor to use new parseRichText function instead of regex
+         */
         if (match) {
             // Check token containing match
             // If token already haves this annotation, do not format and perform a simple updateToken.
@@ -790,14 +809,21 @@ export default function RichTextInput(props: RichTextInputProps) {
 
     useImperativeHandle(ref, () => ({
 
-        setValue(value: string) {
+        setValue(value: string | Token[]) {
+            if (Array.isArray(value)) {
+                setTokens(value);
+                return;
+            }
             // To keep styles, parsing should be done before setting value
-            const { tokens, plain_text } = parseRichTextString(value, patterns);
-            setTokens([...concatTokens(tokens)]);
+            const { tokens, plain_text } = parseRichTextStringV2(value, patterns);
+            setTokens(tokens);
             prevTextRef.current = plain_text;
         },
-        getRichText() {
+        getRichTextString() {
             return parseTokens(tokens, patterns);
+        },
+        getTokenizedString() {
+            return tokens;
         },
         toggleStyle(style: string) {
             const { start, end } = selectionRef.current;

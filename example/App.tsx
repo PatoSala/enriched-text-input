@@ -29,22 +29,23 @@ export default function App() {
   }
 
   const handleGetRichText = () => {
-    const richText = richTextInputRef.current?.getRichText();
+    const richText = richTextInputRef.current?.getRichTextString();
     console.log(richText);
   }
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={{ flex: 1 }}>
-        {/* <TextInput
+        <TextInput
           style={{ fontSize: 20, padding: 16 }}
           value={rawValue}
           onChangeText={(text) => setRawValue(text)}
+          placeholder='Raw'
         />
         <Button
           title='Set rich text string'
           onPress={() => richTextInputRef.current?.setValue(rawValue)}
-        /> */}
+        />
         <RichTextInput
           ref={richTextInputRef}
           patterns={customPatterns}/>
