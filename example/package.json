@@ -10,11 +10,12 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "enriched-text-input": "file:../",
     "expo": "~54.0.25",
+    "expo-clipboard": "~8.0.8",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
-    "react-native": "0.81.5",
-    "enriched-text-input": "file:../"
+    "react-native": "0.81.5"
   },
   "private": true,
   "devDependencies": {

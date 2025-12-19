@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity, Button, TextInput } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { RichTextInput, Toolbar, PATTERNS } from 'enriched-text-input';
+import * as Clipboard from 'expo-clipboard';
 
 function Comment({ children }) {
   return (
@@ -17,6 +18,7 @@ function Comment({ children }) {
 
 export default function App() {
   const [rawValue, setRawValue] = useState("");
+  const [richTextStringValue, setRichTextStringValue] = useState("");
   const richTextInputRef = useRef(null);
 
   const customPatterns = [
@@ -30,6 +32,12 @@ export default function App() {
 
   const handleGetRichText = () => {
     const richText = richTextInputRef.current?.getRichTextString();
+
+    setRichTextStringValue(richText);
+  }
+
+  const handleCopyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
   }
 
   return (
@@ -39,24 +47,36 @@ export default function App() {
           style={{ fontSize: 20, padding: 16 }}
           value={rawValue}
           onChangeText={(text) => setRawValue(text)}
-          placeholder='Raw'
+          placeholder='Raw text'
         />
         <Button
           title='Set rich text string'
           onPress={() => richTextInputRef.current?.setValue(rawValue)}
         />
+
         <RichTextInput
           ref={richTextInputRef}
           patterns={customPatterns}
           autoComplete="off"
-          placeholder="Rich text input"
+          placeholder="Rich text"
           multiline={true}
         />
+        <Button
+          title='Get rich text string'
+          onPress={handleGetRichText}
+        />
+        <Text style={{ padding: 16, fontSize: 20, color: richTextStringValue ? "black" : "#b3b3b3" }}>{richTextStringValue ? richTextStringValue : "Get rich text output will appear here!"}</Text>
 
+        <View style={{ flexDirection: "row", justifyContent: "center"}}>
           <Button
-            title='Get rich text string (check console)'
-            onPress={handleGetRichText}
+            title='Clear'
+            onPress={() => setRichTextStringValue("")}
           />
+          <Button
+            title='Copy'
+            onPress={() => handleCopyToClipboard(richTextStringValue)}
+          />
+        </View>
       </View>
       <View style={{ alignSelf: "end"}}>
         <Toolbar richTextInputRef={richTextInputRef}>
