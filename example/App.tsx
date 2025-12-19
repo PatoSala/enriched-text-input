@@ -44,6 +44,7 @@ export default function App() {
     <KeyboardAvoidingView style={styles.container} behavior="padding">
       <View style={{ flex: 1 }}>
         <TextInput
+          multiline
           style={{ fontSize: 20, padding: 16 }}
           value={rawValue}
           onChangeText={(text) => setRawValue(text)}

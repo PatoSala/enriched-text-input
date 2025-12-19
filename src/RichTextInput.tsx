@@ -21,6 +21,8 @@ interface RichTextMatch {
     content: string;
     start: number;
     end: number;
+    pattern: Pattern;
+    /** @deprecated */
     expression: string;
 }
 
@@ -70,55 +72,44 @@ function replaceAt(str, index, substring, length) {
   return str.slice(0, i) + substring + str.slice(i + length);
 }
 
-function findMatch(str: string, regexExpression: string) : RichTextMatch | null {
-  const regex = new RegExp(regexExpression);
-  const match = regex.exec(str);
-  return match
-    ? {
-        raw: match[0],
-        content: match[1],
-        start: match.index,
-        end: match.index + match[0].length,
-        expression: regexExpression
+/**
+ * To-do: Add support for openings and closings that are conformed by two or more chars (e.g. **, __, <b>, etc.)
+ */
+function findMatchV2(str: string, patterns: Pattern[]) : RichTextMatch | null {
+    let match = null;
+    let copyOfString = str;
+
+    for (const pattern of patterns) {
+        let evenCount = 0;
+
+        for (const char of copyOfString) {
+            /** Cases where both opening and closing chars are defined (*...*, _..._, etc.)*/
+            if (pattern.opening && pattern.closing) {
+                if (evenCount < 2 && char === pattern.opening) {
+                    evenCount++;
+                }
+                if (evenCount === 2 && char === pattern.closing) {
+                    const openingIndex = copyOfString.indexOf(pattern.opening);
+                    const closingIndex = copyOfString.indexOf(pattern.closing, openingIndex + 1);
+
+                    match = {
+                        raw: copyOfString.slice(openingIndex, closingIndex + 1),
+                        content: copyOfString.slice(openingIndex + 1, closingIndex),
+                        start: openingIndex,
+                        end: closingIndex,
+                        pattern,
+                        /** @deprecated */
+                        expression: pattern.regex
+                    };
+                    break;
+                }
+            }
+
+            /** Cases where only opening char is defined (@, #, etc.) */
+        }
     }
-    : null;
-}
 
-function getRequiredLiterals(regexString: string) {
-  // Strip leading/trailing slashes and flags (if user passed /.../ form)
-  regexString = regexString.replace(/^\/|\/[a-z]*$/g, "");
-
-  // Remove ^ and $ anchors
-  regexString = regexString.replace(/^\^|\$$/g, "");
-
-  // 1. Find the first literal before any group or operator
-  const beforeGroup = regexString.match(/^((?:\\.|[^[(])+)/);
-  let openLiteral = null;
-
-  if (beforeGroup) {
-    const part = beforeGroup[1];
-    const litMatch = part.match(/\\(.)|([^\\])/); // first literal
-    if (litMatch) {
-      openLiteral = litMatch[1] ?? litMatch[2];
-    }
-  }
-
-  // 2. Detect a closing literal after a capturing group (optional)
-  let closeLiteral = null;
-  const afterGroup = regexString.match(/\)([^).]+)/);
-  if (afterGroup) {
-    const part = afterGroup[1];
-    const litMatch = part.match(/\\(.)|([^\\])/);
-    if (litMatch) {
-      closeLiteral = litMatch[1] ?? litMatch[2];
-    }
-  }
-
-  // Return both if available, otherwise just the opening literal
-  return {
-    opening: openLiteral,
-    closing: closeLiteral,
-  };
+    return match;
 }
 
 /**
@@ -162,10 +153,10 @@ function diffStrings(prev, next) : Diff {
 /** 
  * Parse rich text string into tokens.
  */
-const parseRichTextString = (richTextString: string, patterns: Pattern[])
+const parseRichTextString = (richTextString: string, patterns: Pattern[], initialTokens?: Token[])
 : { tokens: Token[], plain_text: string } => {
     let copyOfString = richTextString;
-    let tokens : Token[] = [
+    let tokens : Token[] = initialTokens || [
         {
             text: copyOfString,
             annotations: {}
@@ -759,12 +750,8 @@ export default function RichTextInput(props: RichTextInputProps) {
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
 
-        let match : RichTextMatch | null = null;
-
-        for (const pattern of patterns) {
-            match = findMatch(nextText, pattern.regex);
-            if (match) break;
-        }
+       const match = findMatchV2(nextText, patterns);
+       console.log("MATCH:", match);
 
         /**
          * Note: refactor to use new parseRichText function instead of regex
@@ -772,22 +759,21 @@ export default function RichTextInput(props: RichTextInputProps) {
         if (match) {
             // Check token containing match
             // If token already haves this annotation, do not format and perform a simple updateToken.
-            const annotation = patterns.find(p => p.regex === match.expression);
-            const { result } = splitTokens(
+            const { result, plain_text } = splitTokens(
                 tokens,
                 match.start,
-                match.end - 1,
-                { [annotation.style]: true },
+                match.end/*  - 1 */, // I don't remember why the -1
+                { [match.pattern.style]: true },
                 // Get the rich text opening char to replace it
-                getRequiredLiterals(match.expression).opening
+                match.pattern.opening
             );
-            const plain_text = result.reduce((acc, curr) => acc + curr.text, "");
 
             setTokens([...concatTokens(result)]);
             prevTextRef.current = plain_text;
 
             return;
         }
+
 
         if (Object.values(toSplit.annotations).some(Boolean) && diff.start === toSplit.start && diff.start === toSplit.end) {
             const { result } = insertToken(
