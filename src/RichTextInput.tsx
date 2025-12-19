@@ -177,6 +177,7 @@ const parseRichTextStringV2 = (richTextString: string, patterns: Pattern[])
         let evenCount = 0;
 
         for (const char of copyOfString) {
+            /** Cases where both opening and closing chars are defined (*...*, _..._, etc.)*/
             if (pattern.opening && pattern.closing) {
                 if (evenCount < 2 && char === pattern.opening) {
                     evenCount++;
@@ -184,12 +185,15 @@ const parseRichTextStringV2 = (richTextString: string, patterns: Pattern[])
                 if (evenCount === 2 && char === pattern.closing) {
                     const openingIndex = copyOfString.indexOf(pattern.opening);
                     const closingIndex = copyOfString.indexOf(pattern.closing, openingIndex + 1);
-                    
+
+                    copyOfString = copyOfString.slice(0, openingIndex) + copyOfString.slice(closingIndex);
                     const { result, plain_text } = splitTokens(tokens, openingIndex, closingIndex, { [pattern.style]: true }, pattern.opening);
                     tokens = result;
                     copyOfString = plain_text;
                 }
             }
+
+            /** Cases where only opening char is defined (@, #, etc.) */
         }
     }
 
@@ -707,7 +711,6 @@ export default function RichTextInput(props: RichTextInputProps) {
             code: false
         }
     }]);
-    console.log("Tokens", tokens);
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
