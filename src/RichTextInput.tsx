@@ -1,6 +1,5 @@
-import { useState, useImperativeHandle, useRef, useEffect, ReactElement, JSX } from "react";
-import { TextInput, Text, StyleSheet, View, Linking } from "react-native";
-import { get } from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+import { useState, useImperativeHandle, useRef, useEffect, JSX } from "react";
+import { TextInput, Text, StyleSheet, View, TextInputProps } from "react-native";
 
 interface Token {
     text: string;
@@ -163,7 +162,7 @@ function diffStrings(prev, next) : Diff {
 /** 
  * Parse rich text string into tokens.
  */
-const parseRichTextStringV2 = (richTextString: string, patterns: Pattern[])
+const parseRichTextString = (richTextString: string, patterns: Pattern[])
 : { tokens: Token[], plain_text: string } => {
     let copyOfString = richTextString;
     let tokens : Token[] = [
@@ -696,7 +695,14 @@ function SubSubHeading({ children }) {
 export default function RichTextInput(props: RichTextInputProps) {
     const {
         ref,
-        patterns = PATTERNS
+        patterns = PATTERNS,
+        
+        /** TextInput props */
+        value,
+        defaultValue,
+        onChangeText,
+        onSelectionChange,
+        ...rest
     } = props;
 
     const inputRef = useRef<TextInput>(null);
@@ -811,24 +817,53 @@ export default function RichTextInput(props: RichTextInputProps) {
     }
 
     useImperativeHandle(ref, () => ({
-
+        /**
+         * Sets the TextInput's value as a rich text string or an array of tokens.
+         */
         setValue(value: string | Token[]) {
             if (Array.isArray(value)) {
+                // Maybe check if tokens structure is valid before setting.
                 setTokens(value);
                 return;
             }
             // To keep styles, parsing should be done before setting value
-            const { tokens, plain_text } = parseRichTextStringV2(value, patterns);
+            const { tokens, plain_text } = parseRichTextString(value, patterns);
             setTokens(tokens);
             prevTextRef.current = plain_text;
         },
+        /**
+         * Sets the TextInput's selection.
+         */
+        setSelection(start: number, end: number) {
+            inputRef.current.setSelection(start, end);
+        },
+        /**
+         * Focuses the TextInput.
+         */
+        focus() {
+            inputRef.current.focus();
+        },
+        blur() {
+            inputRef.current.blur();
+        },
+        /**
+         * Returns the TextInput's value as a rich text string matching the patterns 
+         * for each style defined in the patterns prop. If a style does not define an
+         * opening and closing char, it is ignored.
+         */
         getRichTextString() {
             return parseTokens(tokens, patterns);
         },
-        getTokenizedString() {
+        /**
+         * Returns the TextInput's value as an array of tokens with annotations.
+         */
+        getTokenizedString() : Token[] {
             return tokens;
         },
-        toggleStyle(style: string) {
+        /** 
+         * Toggles a given style. The style prop must match the name of a pattern.
+         */
+        toggleStyle(style: keyof Token["annotations"]) {
             const { start, end } = selectionRef.current;
 
             if (start === end) {
@@ -855,20 +890,18 @@ export default function RichTextInput(props: RichTextInputProps) {
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => {
                 inputRef.current.setSelection(start, end);
-            })
+            });
         }
     }));
 
     return (
        <View style={{ position: "relative" }}>
             <TextInput
-                multiline={true}
                 ref={inputRef}
-                autoComplete="off"
                 style={styles.textInput}
-                placeholder="Rich text input"
                 onSelectionChange={handleSelectionChange}
                 onChangeText={handleOnChangeText}
+                {...rest}
             >
                 <Text style={styles.text}>
                     {tokens.map((token, i) => <Token key={i} token={token} patterns={patterns}/>)}

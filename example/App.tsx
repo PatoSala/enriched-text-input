@@ -30,7 +30,6 @@ export default function App() {
 
   const handleGetRichText = () => {
     const richText = richTextInputRef.current?.getRichTextString();
-    console.log(richText);
   }
 
   return (
@@ -48,12 +47,16 @@ export default function App() {
         />
         <RichTextInput
           ref={richTextInputRef}
-          patterns={customPatterns}/>
+          patterns={customPatterns}
+          autoComplete="off"
+          placeholder="Rich text input"
+          multiline={true}
+        />
 
           <Button
             title='Get rich text string (check console)'
             onPress={handleGetRichText}
-            />
+          />
       </View>
       <View style={{ alignSelf: "end"}}>
         <Toolbar richTextInputRef={richTextInputRef}>
