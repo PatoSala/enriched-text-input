@@ -753,9 +753,7 @@ export default function RichTextInput(props: RichTextInputProps) {
        const match = findMatchV2(nextText, patterns);
        console.log("MATCH:", match);
 
-        /**
-         * Note: refactor to use new parseRichText function instead of regex
-         */
+        // Note: refactor to use new parseRichText function instead of regex
         if (match) {
             // Check token containing match
             // If token already haves this annotation, do not format and perform a simple updateToken.
