@@ -14,21 +14,6 @@ The field for rich-text in react native is still a bit green. Current libraries 
 
 In theory, by only using JavaScript we are able to provide better cross-platform compatibility and the possibility to style elements however you want as long as they follow react-native's `Text` supported styles.
 
-## Features
-
-- [x] Basic text formatting (__bold__, _italic_, underline, ~~strikethrough~~ and `codeblocks`).
-- [x] Rich text format parsing.
-- [ ] Links and mentions.
-- [ ] Custom styling.
-- [ ] Custom rich text patterns.
-- [ ] Exposed event handlers (onSubmit, onChange, onBlur, onFocus, etc).
-- [ ] Custom methods and event handlers (setValue, onStartMention, onStyleChange, etc).
-- [ ] Headings.
-
-## Known limitations
-- Inline images.
-- Only `Text`component styles are supported.
-
 ## Installation
 ```
 npm install enriched-text-input
@@ -66,9 +51,27 @@ const styles = StyleSheet.create({
     paddingTop: 120
   },
 });
-
-
 ```
+
+## Current state
+At the moment [1/1/2026] `enriched-text-input` works great for things such as small rich-text inputs (Eg. an input for a messaging app with rich-text support) but not for creating whole rich-text editors. This is because inline styles that do not break line are working as expected (Eg. bold, italic or underline work great but styles such as headings break line so they are currently not supported).
+
+Live parsing of rich text symbols (such as wrapping words in asterisks `*`) is still a work in progress an not working correctly but you can toggle styles through the ref api of the `EnrichedTextInput` (or use the provided `Toolbar` component as shown in the example usage).
+
+## Features
+
+- [x] Basic text formatting (__bold__, _italic_, underline, ~~strikethrough~~ and `inline code`).
+- [ ] Rich text format parsing.
+- [ ] Links and mentions.
+- [x] Custom styling.
+- [x] Custom rich text patterns.
+- [ ] Exposed event handlers (onSubmit, onChange, onBlur, onFocus, etc).
+- [ ] Custom methods and event handlers (setValue, onStartMention, onStyleChange, etc).
+- [ ] Headings.
+
+## Known limitations
+- Inline images.
+- Only `Text`component styles are supported.
 
 ## Contributing
 
