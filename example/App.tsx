@@ -19,6 +19,8 @@ function Comment({ children }) {
 export default function App() {
   const [rawValue, setRawValue] = useState("");
   const [richTextStringValue, setRichTextStringValue] = useState("");
+  const [activeStyles, setActiveStyles] = useState([]);
+  console.log("ACTIVE STYLES:", activeStyles);
   const richTextInputRef = useRef(null);
 
   const customPatterns = [
@@ -81,15 +83,14 @@ export default function App() {
       </View>
       <View style={{ alignSelf: "end"}}>
         <Toolbar richTextInputRef={richTextInputRef}>
-          <Toolbar.Bold />
+          <Toolbar.Bold/>
           <Toolbar.Italic />
           <Toolbar.Underline />
           <Toolbar.Strikethrough />
           <Toolbar.Code />
-          <TouchableOpacity style={styles.toolbarButton} onPress={handleComment}>
+          {/* <TouchableOpacity style={styles.toolbarButton} onPress={handleComment}>
             <FontAwesome6 name="comment-alt" size={16} color="black" />
-          </TouchableOpacity>
-
+          </TouchableOpacity> */}
           <Toolbar.Keyboard />
         </Toolbar>
       </View>

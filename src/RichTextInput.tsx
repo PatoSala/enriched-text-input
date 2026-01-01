@@ -72,6 +72,35 @@ function replaceAt(str, index, substring, length) {
   return str.slice(0, i) + substring + str.slice(i + length);
 }
 
+function findTokens(
+    /** The tokens to search over. */
+    tokens: Token[],
+    /** start position of selection.*/
+    start: number,
+    /** end position of selection.*/
+    end?: number
+) {
+    
+    if (end) {
+        // Search for all tokens between start and end
+        return { result: null };
+    }
+
+    let startIndex = start;
+    let startToken;
+    for (const token of tokens) {
+        if (startIndex <= token.text.length) {
+            startToken = token;
+            break;
+        }
+        startIndex -= token.text.length;
+    }
+
+    const startTokenIndex = tokens.indexOf(startToken);
+
+    return { result: [startToken] };
+}
+
 /**
  * To-do: Add support for openings and closings that are conformed by two or more chars (e.g. **, __, <b>, etc.)
  */
@@ -742,16 +771,17 @@ export default function RichTextInput(props: RichTextInputProps) {
         end: 0,
         annotations: {}
     });
-
+    /* console.log("toSplit", toSplit); */
     const handleSelectionChange = ({ nativeEvent }) => {
         selectionRef.current = nativeEvent.selection;
+        onSelectionChange && onSelectionChange(nativeEvent);
     }
 
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
 
        const match = findMatchV2(nextText, patterns);
-       console.log("MATCH:", match);
+       /* console.log("MATCH:", match); */
 
         // Note: refactor to use new parseRichText function instead of regex
         if (match) {
@@ -859,22 +889,24 @@ export default function RichTextInput(props: RichTextInputProps) {
                 return;
             }
 
-            /**
-             * This prevents that when a portion of text is set to bold, the next text inserted after it is not bold.
-             */
-            if (start < end) {
-                setToSplit({
-                    start: end,
-                    end: end,
-                    annotations: concileAnnotations(toSplit.annotations, { [style]: true })
-                })
-            }
-
             const { result } = splitTokens(tokens, start, end, { [style]: true });
             setTokens([...concatTokens(result)]);
             requestAnimationFrame(() => {
                 inputRef.current.setSelection(start, end);
             });
+        },
+        /**
+         * Returns the active styles for the current selection.
+         */
+        getActiveStyles() {
+            // Check for styles of the token at the current cursor position.
+            const { result } = findTokens(tokens, selectionRef.current.start);
+            
+            if (result[0].annotations) {
+                return Object.keys(result[0].annotations).filter(key => result[0].annotations[key]);
+            }
+
+            return [];
         }
     }));
 

@@ -45,49 +45,50 @@ export default function Toolbar({
     );
 }
 
-Toolbar.Bold = () => {
+Toolbar.Bold = ({ color = "black" }) => {
+    console.log("COLOR:", color);
     const richTextInputRef = useToolbarContext();
 
     const handleBold = () => {
-        richTextInputRef.current.toggleStyle("bold");
+        richTextInputRef?.current?.toggleStyle("bold");
     }
 
     return (
         <TouchableOpacity style={styles.toolbarButton} onPress={handleBold}>
-            <FontAwesome6 name="bold" size={16} color="black" />
+            <FontAwesome6 name="bold" size={16} color={color} />
         </TouchableOpacity>
     )
 }
 
-Toolbar.Italic = () => {
+Toolbar.Italic = ({ color = "black" }) => {
     const richTextInputRef = useToolbarContext();
 
     const handleItalic = () => {
-        richTextInputRef.current.toggleStyle("italic");
+        richTextInputRef?.current?.toggleStyle("italic");
     }
 
     return (
         <TouchableOpacity style={styles.toolbarButton} onPress={handleItalic}>
-            <FontAwesome6 name="italic" size={16} color="black" />
+            <FontAwesome6 name="italic" size={16} color={color} />
         </TouchableOpacity>
     )
 }
 
-Toolbar.Strikethrough = () => {
+Toolbar.Strikethrough = ({ color = "black" }) => {
     const richTextInputRef = useToolbarContext();
 
     const handleLineThrough = () => {
-        richTextInputRef.current.toggleStyle("lineThrough");
+        richTextInputRef?.current?.toggleStyle("lineThrough");
     }
 
     return (
         <TouchableOpacity style={styles.toolbarButton} onPress={handleLineThrough}>
-            <FontAwesome6 name="strikethrough" size={16} color="black" />
+            <FontAwesome6 name="strikethrough" size={16} color={color} />
         </TouchableOpacity>
     )
 }
 
-Toolbar.Underline = () => {
+Toolbar.Underline = ({ color = "black" }) => {
     const richTextInputRef = useToolbarContext();
 
     const handleUnderline = () => {
@@ -96,7 +97,7 @@ Toolbar.Underline = () => {
 
     return (
         <TouchableOpacity style={styles.toolbarButton} onPress={handleUnderline}>
-            <FontAwesome6 name="underline" size={16} color="black" />
+            <FontAwesome6 name="underline" size={16} color={color} />
         </TouchableOpacity>
     )
 }
@@ -110,8 +111,8 @@ Toolbar.Heading = () => {
 
     return (
         <TouchableOpacity style={[styles.toolbarButton, styles.heading]} onPress={handleHeading}>
-            <FontAwesome6 name="heading" size={16} color="black" />
-            <FontAwesome6 name="1" size={16} color="black" />
+            <FontAwesome6 name="heading" size={16} color={color} />
+            <FontAwesome6 name="1" size={16} color={color} />
         </TouchableOpacity>
     )
 }
@@ -125,8 +126,8 @@ Toolbar.SubHeading = () => {
 
     return (
         <TouchableOpacity style={[styles.toolbarButton, styles.heading]} onPress={handleSubHeading}>
-            <FontAwesome6 name="heading" size={16} color="black" />
-            <FontAwesome6 name="2" size={16} color="black" />
+            <FontAwesome6 name="heading" size={16} color={color} />
+            <FontAwesome6 name="2" size={16} color={color} />
         </TouchableOpacity>
     )
 }
@@ -140,36 +141,36 @@ Toolbar.SubSubHeading = () => {
 
     return (
         <TouchableOpacity style={[styles.toolbarButton, styles.heading]} onPress={handleSubSubHeading}>
-            <FontAwesome6 name="heading" size={16} color="black" />
-            <FontAwesome6 name="3" size={16} color="black" />
+            <FontAwesome6 name="heading" size={16} color={color} />
+            <FontAwesome6 name="3" size={16} color={color} />
         </TouchableOpacity>
     )
 }
 
-Toolbar.Code = () => {
+Toolbar.Code = ({ color = "black" }) => {
     const richTextInputRef = useToolbarContext();
 
     const handleCode = () => {
-        richTextInputRef.current.toggleStyle("code");
+        richTextInputRef?.current?.toggleStyle("code");
     }
 
     return (
         <TouchableOpacity style={styles.toolbarButton} onPress={handleCode}>
-            <FontAwesome6 name="code" size={16} color="black" />
+            <FontAwesome6 name="code" size={16} color={color} />
         </TouchableOpacity>
     )
 }
 
-Toolbar.Keyboard = () => {
+Toolbar.Keyboard = ({ color = "black" }) => {
     const handleKeyboardDismiss = () => {
         Keyboard.dismiss();
     }
 
     return (
        <TouchableOpacity style={[styles.toolbarButton, styles.keyboardDown]} onPress={handleKeyboardDismiss}>
-            <FontAwesome6 name="keyboard" size={16} color="black" />
+            <FontAwesome6 name="keyboard" size={16} color={color} />
             <View style={styles.keyboardArrowContainer}>
-                <FontAwesome6 name="chevron-down" size={8} color="black"/>
+                <FontAwesome6 name="chevron-down" size={8} color={color}/>
             </View>
         </TouchableOpacity>
     )
