@@ -1,4 +1,4 @@
-import { Bold, Code, Heading, Italic, SubHeading, SubSubHeading, Strikethrough, Underline } from "./components/InlineComponents";
+import { Bold, Code, Heading, Italic, SubHeading, SubSubHeading, Strikethrough, Underline } from "./components/StyledText";
 
 export const markdownStyles = [
   { style: "bold", regex: "\\*([^*]+)\\*", render: Bold, opening: "*", closing: "*" },

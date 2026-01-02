@@ -1,20 +1,7 @@
 import { useRef, useState } from 'react';
-import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity, Button, TextInput } from 'react-native';
-import { FontAwesome6 } from '@expo/vector-icons';
+import { StyleSheet, View, KeyboardAvoidingView, Text, Button, TextInput } from 'react-native';
 import { EnrichedTextInput, Toolbar, markdownStyles } from 'enriched-text-input';
 import * as Clipboard from 'expo-clipboard';
-
-function Comment({ children }) {
-  return (
-    <Text style={{
-      backgroundColor: "rgba(255, 203, 0, .12)",
-      textDecorationLine: "underline",
-      textDecorationColor: "rgba(255, 203, 0, .35)",
-    }}>
-      {children}
-    </Text>
-  )
-}
 
 export default function App() {
   const [rawValue, setRawValue] = useState("");
@@ -22,15 +9,6 @@ export default function App() {
   const [activeStyles, setActiveStyles] = useState([]);
   console.log("ACTIVE STYLES:", activeStyles);
   const richTextInputRef = useRef(null);
-
-  const customPatterns = [
-    ...markdownStyles,
-    { style: "comment", regex: null, render: Comment }
-  ];
-
-  const handleComment = () => {
-    richTextInputRef.current?.toggleStyle("comment");
-  }
 
   const handleGetRichText = () => {
     const richText = richTextInputRef.current?.getRichTextString();
@@ -59,7 +37,6 @@ export default function App() {
 
         <EnrichedTextInput
           ref={richTextInputRef}
-          stylePatterns={customPatterns}
           placeholder="Rich text"
           multiline={true}
         />

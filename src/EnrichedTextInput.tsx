@@ -678,9 +678,6 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
         defaultValue,
         onSelectionChange,
         onValueChange,
-        
-        /** TextInput props */
-        ...rest
     } = props;
 
     const inputRef = useRef<TextInput>(null);
@@ -709,6 +706,20 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
             }])
         }
     }, [tokens]);
+
+    useEffect(( ) => {
+        if (defaultValue) {
+            if (Array.isArray(defaultValue)) {
+                // Maybe check if tokens structure is valid before setting.
+                setTokens(defaultValue);
+                return;
+            }
+            // To keep styles, parsing should be done before setting defaultValue
+            const { tokens, plain_text } = parseRichTextString(defaultValue, stylePatterns);
+            setTokens(tokens);
+            prevTextRef.current = plain_text;
+        }
+    }, []);
 
     /**
      * Prev text should not contain matching rich text formats.
