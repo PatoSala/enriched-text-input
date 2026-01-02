@@ -1,4 +1,5 @@
-import RichTextInput, { PATTERNS } from "./src/RichTextInput";
+import EnrichedTextInput from "./src/EnrichedTextInput";
+import { markdownStyles } from "./src/markdownStyles";
 import Toolbar from "./src/Toolbar";
 
-export { RichTextInput, PATTERNS, Toolbar };
+export { EnrichedTextInput, markdownStyles, Toolbar };

@@ -1,5 +1,6 @@
 import { useState, useImperativeHandle, useRef, useEffect, JSX } from "react";
 import { TextInput, Text, StyleSheet, View, TextInputProps } from "react-native";
+import { markdownStyles } from "./markdownStyles";
 
 interface Token {
     text: string;
@@ -34,9 +35,11 @@ interface Pattern {
     closing?: string;
 }
 
-interface RichTextInputProps {
+interface EnrichedTextInputProps {
     ref: any;
-    patterns?: Pattern[];
+    stylePatterns?: Pattern[];
+    placeholder?: string;
+    multiline?: boolean;
     defaultValue?: string | Token[];
     onValueChange?: () => void;
     onSelectionChange?: () => void;
@@ -48,16 +51,7 @@ interface RichTextInputProps {
  * If just opening is defined, we look for a match that looks like {opening}{content}.
  * Closing can not be defined if opening is not defined.
  */
-export const PATTERNS : Pattern[] = [
-  { style: "bold", regex: "\\*([^*]+)\\*", render: Bold, opening: "*", closing: "*" },
-  { style: "italic", regex: "_([^_]+)_", render: Italic, opening: "_", closing: "_" },
-  { style: "lineThrough", regex: "~([^~]+)~", render: Strikethrough, opening: "~", closing: "~" },
-  { style: "code", regex: "`([^`]+)`", render: Code, opening: "`", closing: "`" },
-  { style: "underline", regex: "__([^_]+)__", render: Underline, opening: "__", closing: "__" },
-  { style: "heading", regex: null, render: Heading, opening: "#", closing: null },
-  { style: "subHeading", regex: null, render: SubHeading, opening: "##", closing: null },
-  { style: "subSubHeading", regex: null, render: SubSubHeading, opening: "###", closing: null }
-];
+export const defaultStylePatterns : Pattern[] = markdownStyles;
 
 function insertAt(str, index, substring) {
   // Clamp index into valid boundaries
@@ -85,7 +79,7 @@ function findTokens(
 ) {
     
     if (end) {
-        // Search for all tokens between start and end
+        // To-do: search for all tokens between start and end
         return { result: null };
     }
 
@@ -146,6 +140,11 @@ function findMatchV2(str: string, patterns: Pattern[]) : RichTextMatch | null {
 
 /**
  * If prev token contains new annotation, negate prev. Else, use new annotation.
+ * 
+ * @example
+ * prev: { bold: true }
+ * new: { bold: false }
+ * result: { bold: false }
  */
 function concileAnnotations(prevAnnotations, newAnnotations) {
   let updatedAnnotations = { ...prevAnnotations };
@@ -183,6 +182,7 @@ function diffStrings(prev, next) : Diff {
 }
 
 /** 
+ * [Needs refactoring]
  * Parse rich text string into tokens.
  */
 const parseRichTextString = (richTextString: string, patterns: Pattern[], initialTokens?: Token[])
@@ -227,6 +227,13 @@ const parseRichTextString = (richTextString: string, patterns: Pattern[], initia
 
 /**
  * Parse tokens into rich text string.
+ * To-do: Find a way to group consequitive tokens with a same annotation inside one single
+ * wrapper.
+ * 
+ * @example
+ * Tokens: [{ text: "Hello", annotations: { bold: true } }, { text: "World", annotations: { bold: true, italic: true } }]
+ * Current output: *Hello* *_World_*
+ * Desired output: *Hello _World_*
  */
 const parseTokens = (tokens: Token[], patterns: Pattern[]) => {
     return tokens.map(token => {
@@ -433,6 +440,7 @@ const updateTokens = (tokens: Token[], diff: Diff) => {
          * Remove:
          * - For more than two tokens, works.
          * - For two tokens, does not work properly.
+         * (right now remove for more than two tokens works properly. Anyway, it might need better testing).
          */
         if (diff.removed.length > 0) {
             const firstToken = selectedTokens[0];
@@ -661,71 +669,17 @@ function Token(props: TokenProps) : JSX.Element {
     );
 }
 
-function Code({ children }) {
-    return (
-        <Text style={styles.code}>{children}</Text>
-    )
-}
-
-function Bold({ children }) {
-    return (
-        <Text style={styles.bold}>{children}</Text>
-    )
-}
-
-function Italic({ children }) {
-    return (
-        <Text style={styles.italic}>{children}</Text>
-    )
-}
-
-function Underline({ children }) {
-    return (
-        <Text style={styles.underline}>{children}</Text>
-    )
-}
-
-function Strikethrough({ children }) {
-    return (
-        <Text style={styles.lineThrough}>{children}</Text>
-    )
-}
-
-function UnderlineStrikethrough({ children }) {
-    return (
-        <Text style={styles.underlineLineThrough}>{children}</Text>
-    )
-}
-
-function Heading({ children }) {
-    return (
-        <Text style={styles.heading}>{children}</Text>
-    )
-}
-
-function SubHeading({ children }) {
-    return (
-        <Text style={styles.subHeading}>{children}</Text>
-    )
-}
-
-function SubSubHeading({ children }) {
-    return (
-        <Text style={styles.subSubHeading}>{children}</Text>
-    )
-}
-
-export default function RichTextInput(props: RichTextInputProps) {
+export default function EnrichedTextInput(props: EnrichedTextInputProps) {
     const {
         ref,
-        patterns = PATTERNS,
+        stylePatterns = defaultStylePatterns,
+        placeholder,
+        multiline,
+        defaultValue,
         onSelectionChange,
-        onValueChange
+        onValueChange,
         
         /** TextInput props */
-        value,
-        defaultValue,
-        onChangeText,
         ...rest
     } = props;
 
@@ -784,7 +738,7 @@ export default function RichTextInput(props: RichTextInputProps) {
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
 
-       const match = findMatchV2(nextText, patterns);
+       const match = findMatchV2(nextText, stylePatterns);
        /* console.log("MATCH:", match); */
 
         // Note: refactor to use new parseRichText function instead of regex
@@ -845,7 +799,7 @@ export default function RichTextInput(props: RichTextInputProps) {
                 return;
             }
             // To keep styles, parsing should be done before setting value
-            const { tokens, plain_text } = parseRichTextString(value, patterns);
+            const { tokens, plain_text } = parseRichTextString(value, stylePatterns);
             setTokens(tokens);
             prevTextRef.current = plain_text;
         },
@@ -870,7 +824,7 @@ export default function RichTextInput(props: RichTextInputProps) {
          * opening and closing char, it is ignored.
          */
         getRichTextString() {
-            return parseTokens(tokens, patterns);
+            return parseTokens(tokens, stylePatterns);
         },
         /**
          * Returns the text input's value as an array of tokens.
@@ -919,12 +873,13 @@ export default function RichTextInput(props: RichTextInputProps) {
             <TextInput
                 ref={inputRef}
                 style={styles.textInput}
+                placeholder={placeholder}
+                multiline={multiline}
                 onSelectionChange={handleSelectionChange}
                 onChangeText={handleOnChangeText}
-                {...rest}
             >
                 <Text style={styles.text}>
-                    {tokens.map((token, i) => <Token key={i} token={token} patterns={patterns}/>)}
+                    {tokens.map((token, i) => <Token key={i} token={token} patterns={stylePatterns}/>)}
                 </Text>
             </TextInput>
        </View>
@@ -940,53 +895,5 @@ const styles = StyleSheet.create({
     },
     text: {
         color: "black",
-    },
-    bold: {
-        fontWeight: 'bold',
-    },
-    italic: {
-        fontStyle: "italic"
-    },
-    lineThrough: {
-        textDecorationLine: "line-through"
-    },
-    underline: {
-        textDecorationLine: "underline",
-    },
-    underlineLineThrough: {
-        textDecorationLine: "underline line-through"
-    },
-    codeContainer: {
-        backgroundColor: "lightgray",
-        paddingHorizontal: 4,
-        borderRadius: 4,
-        height: 24,
-        position: "absolute",
-        top: 10
-    },
-    code: {
-        fontFamily: "ui-monospace",
-        color: "#EB5757",
-        fontSize: 20,
-        backgroundColor: "rgba(135, 131, 120, .15)"
-    },
-    highlight: {
-        width: "100%",
-        position: "absolute",
-        padding: 20,
-        height: 24,
-        backgroundColor: "blue"
-    },
-    heading: {
-        fontSize: 32,
-        fontWeight: "bold"
-    },
-    subHeading: {
-        fontSize: 28,
-        fontWeight: "bold"
-    },
-    subSubHeading: {
-        fontSize: 24,
-        fontWeight: "bold"
     }
 });
