@@ -73,6 +73,9 @@ Live parsing of rich text symbols (such as wrapping words in asterisks `*`) is s
 - Inline images.
 - Only `Text`component styles are supported.
 
+## API Reference
+[API Reference](./API_REFERENCE.md).
+
 ## Contributing
 
 ### Clone this repo

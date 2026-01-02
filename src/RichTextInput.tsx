@@ -36,7 +36,10 @@ interface Pattern {
 
 interface RichTextInputProps {
     ref: any;
-    patterns?: Pattern[]
+    patterns?: Pattern[];
+    defaultValue?: string | Token[];
+    onValueChange?: () => void;
+    onSelectionChange?: () => void;
 }
 
 /**
@@ -716,12 +719,13 @@ export default function RichTextInput(props: RichTextInputProps) {
     const {
         ref,
         patterns = PATTERNS,
+        onSelectionChange,
+        onValueChange
         
         /** TextInput props */
         value,
         defaultValue,
         onChangeText,
-        onSelectionChange,
         ...rest
     } = props;
 
@@ -869,7 +873,7 @@ export default function RichTextInput(props: RichTextInputProps) {
             return parseTokens(tokens, patterns);
         },
         /**
-         * Returns the TextInput's value as an array of tokens with annotations.
+         * Returns the text input's value as an array of tokens.
          */
         getTokenizedString() : Token[] {
             return tokens;
