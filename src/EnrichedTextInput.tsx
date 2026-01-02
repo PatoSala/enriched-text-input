@@ -674,7 +674,7 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
         ref,
         stylePatterns = defaultStylePatterns,
         placeholder,
-        multiline,
+        multiline = false,
         defaultValue,
         onSelectionChange,
         onValueChange,
@@ -705,6 +705,8 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
                 }
             }])
         }
+
+        onValueChange && onValueChange();
     }, [tokens]);
 
     useEffect(( ) => {
@@ -834,13 +836,16 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
          * for each style defined in the patterns prop. If a style does not define an
          * opening and closing char, it is ignored.
          */
-        getRichTextString() {
+        getRawValue() {
+            return tokens.map(t => t.text).join("");
+        },
+        getRichTextValue() {
             return parseTokens(tokens, stylePatterns);
         },
         /**
          * Returns the text input's value as an array of tokens.
          */
-        getTokenizedString() : Token[] {
+        getTokenizedValue() : Token[] {
             return tokens;
         },
         /** 

@@ -11,7 +11,7 @@ export default function App() {
   const richTextInputRef = useRef(null);
 
   const handleGetRichText = () => {
-    const richText = richTextInputRef.current?.getRichTextString();
+    const richText = richTextInputRef.current?.getRichTextValue();
 
     setRichTextStringValue(richText);
   }
@@ -38,6 +38,7 @@ export default function App() {
         <EnrichedTextInput
           ref={richTextInputRef}
           placeholder="Rich text"
+          onValueChange={() => console.log("VALUE CHANGE", richTextInputRef.current?.getRichTextValue())}
           multiline={true}
         />
         <Button
