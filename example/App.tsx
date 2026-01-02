@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { StyleSheet, View, KeyboardAvoidingView, Text, TouchableOpacity, Button, TextInput } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
-import { RichTextInput, Toolbar, PATTERNS } from 'enriched-text-input';
+import { EnrichedTextInput, Toolbar, markdownStyles } from 'enriched-text-input';
 import * as Clipboard from 'expo-clipboard';
 
 function Comment({ children }) {
@@ -24,7 +24,7 @@ export default function App() {
   const richTextInputRef = useRef(null);
 
   const customPatterns = [
-    ...PATTERNS,
+    ...markdownStyles,
     { style: "comment", regex: null, render: Comment }
   ];
 
@@ -57,10 +57,9 @@ export default function App() {
           onPress={() => richTextInputRef.current?.setValue(rawValue)}
         />
 
-        <RichTextInput
+        <EnrichedTextInput
           ref={richTextInputRef}
-          patterns={customPatterns}
-          autoComplete="off"
+          stylePatterns={customPatterns}
           placeholder="Rich text"
           multiline={true}
         />
