@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
 
 ## Current state
 
-At the moment [1/1/2026] `enriched-text-input` works great for things such as small rich-text inputs (Eg. an input for a messaging app with rich-text support) but not for creating whole rich-text editors. This is because inline styles that do not break line are working as expected (Eg. bold, italic or underline work great but styles such as headings break line so they are currently not supported).
+At the moment [1/1/2026] `enriched-text-input` works great for things such as small rich-text inputs (Eg. an input for a messaging app with rich-text support) but not for creating whole rich-text editors. This is because inline styles that do not break line are working as expected (Eg. bold, italic or underline work great but styles such as headings break line so they are currently not yet supported).
 
 Live parsing of rich text symbols (such as wrapping words in asterisks `*`) is still a work in progress an not working correctly but you can toggle styles through the ref api of the `EnrichedTextInput` (or use the provided `Toolbar`component as shown in the example usage).
 
