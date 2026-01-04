@@ -252,12 +252,12 @@ const parseRichText = (
     let matched = false;
 
     for (const pattern of patterns) {
-      const { opening, name } = pattern;
+      const { opening, style } = pattern;
 
       if (input.startsWith(opening, i)) {
         flush();
 
-        active[name] = !active[name];
+        active[style] = !active[style];
 
         i += opening.length;
         matched = true;
@@ -826,7 +826,7 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
                 return;
             }
             // To keep styles, parsing should be done before setting defaultValue
-            const { tokens, plain_text } = parseRichTextString(defaultValue, stylePatterns);
+            const { tokens, plain_text } = parseRichText(defaultValue, stylePatterns);
             setTokens(tokens);
             prevTextRef.current = plain_text;
         }
@@ -859,9 +859,8 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
 
     const handleOnChangeText = (nextText: string) => {
         const diff = diffStrings(prevTextRef.current, nextText);
-
-       const match = findMatchV2(nextText, stylePatterns);
-       /* console.log("MATCH:", match); */
+        // Find rich text match
+        const match = findMatchV2(nextText, stylePatterns);
 
         // Note: refactor to use new parseRichText function instead of regex
         if (match) {
