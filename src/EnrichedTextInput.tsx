@@ -225,6 +225,62 @@ const parseRichTextString = (richTextString: string, patterns: Pattern[], initia
     };
 }
 
+/** Experimental */
+const parseRichText = (
+  input: string,
+  patterns: StylePattern[]
+): { tokens: Token[]; plain_text: string } => {
+  const tokens: Token[] = [];
+
+  let i = 0;
+  let buffer = "";
+
+  const active: Record<string, boolean> = {};
+
+  const flush = () => {
+    if (!buffer) return;
+
+    tokens.push({
+      text: buffer,
+      annotations: { ...active }
+    });
+
+    buffer = "";
+  };
+
+  while (i < input.length) {
+    let matched = false;
+
+    for (const pattern of patterns) {
+      const { opening, name } = pattern;
+
+      if (input.startsWith(opening, i)) {
+        flush();
+
+        active[name] = !active[name];
+
+        i += opening.length;
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      buffer += input[i];
+      i++;
+    }
+  }
+
+  flush();
+
+  return {
+    tokens: tokens,
+    plain_text: tokens.map(token => token.text).join("")
+  };
+};
+
+/** Experimental */
+
 /**
  * Parse tokens into rich text string.
  * To-do: Find a way to group consequitive tokens with a same annotation inside one single
@@ -252,6 +308,58 @@ const parseTokens = (tokens: Token[], patterns: Pattern[]) => {
         );
     }).join("");
 }
+
+/** Expeerimental */
+const parseTokensV2 = (tokens: Token[], patterns: Pattern[]) => {
+    let result = "";
+    const active = new Set<string>();
+
+    const open = (pattern: Pattern) => {
+        result += pattern.opening;
+        active.add(pattern.style);
+    };
+
+    const close = (pattern: Pattern) => {
+        result += pattern.closing;
+        active.delete(pattern.style);
+    };
+
+    tokens.forEach(token => {
+        const { text, annotations } = token;
+
+        // 1. Close wrappers that are no longer active
+        [...patterns]
+            .reverse()
+            .forEach(pattern => {
+                if (active.has(pattern.style) && !annotations[pattern.style]) {
+                    close(pattern);
+                }
+            });
+
+        // 2. Open wrappers that just became active
+        patterns.forEach(pattern => {
+            if (!active.has(pattern.style) && annotations[pattern.style]) {
+                open(pattern);
+            }
+        });
+
+        // 3. Append text
+        result += text;
+    });
+
+    // 4. Close anything left open
+    [...patterns]
+        .reverse()
+        .forEach(pattern => {
+            if (active.has(pattern.style)) {
+                close(pattern);
+            }
+        });
+
+    return result;
+};
+
+/** Experimental */
 
 // Inserts a token at the given index
 // Only when start === end
@@ -692,6 +800,7 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
             code: false
         }
     }]);
+    console.log("TOKENS:", tokens);
     useEffect(() => {
         if (tokens.length === 0) {
             setTokens([{
@@ -803,7 +912,7 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
 
     useImperativeHandle(ref, () => ({
         /**
-         * Sets the TextInput's value as a rich text string or an array of tokens.
+         * Sets the inputs's value as a rich text string or an array of tokens.
          */
         setValue(value: string | Token[]) {
             if (Array.isArray(value)) {
@@ -812,18 +921,18 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
                 return;
             }
             // To keep styles, parsing should be done before setting value
-            const { tokens, plain_text } = parseRichTextString(value, stylePatterns);
+            const { tokens, plain_text } = parseRichText(value, stylePatterns);
             setTokens(tokens);
             prevTextRef.current = plain_text;
         },
         /**
-         * Sets the TextInput's selection.
+         * Sets the inputs's selection.
          */
         setSelection(start: number, end: number) {
             inputRef.current.setSelection(start, end);
         },
         /**
-         * Focuses the TextInput.
+         * Focuses the inputs.
          */
         focus() {
             inputRef.current.focus();
@@ -832,7 +941,7 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
             inputRef.current.blur();
         },
         /**
-         * Returns the TextInput's value as a rich text string matching the patterns 
+         * Returns the inputs's value as a rich text string matching the patterns 
          * for each style defined in the patterns prop. If a style does not define an
          * opening and closing char, it is ignored.
          */
@@ -840,7 +949,7 @@ export default function EnrichedTextInput(props: EnrichedTextInputProps) {
             return tokens.map(t => t.text).join("");
         },
         getRichTextValue() {
-            return parseTokens(tokens, stylePatterns);
+            return parseTokensV2(tokens, stylePatterns);
         },
         /**
          * Returns the text input's value as an array of tokens.
