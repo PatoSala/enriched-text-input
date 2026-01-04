@@ -1,5 +1,5 @@
 import { useState, useImperativeHandle, useRef, useEffect, JSX } from "react";
-import { TextInput, Text, StyleSheet, View, TextInputProps } from "react-native";
+import { TextInput, Text, StyleSheet, View } from "react-native";
 import { markdownStyles } from "./markdownStyles";
 
 interface Token {

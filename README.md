@@ -82,18 +82,22 @@ If you want you can provide `enriched-text-input` with both default style patter
 ```bash
 import { EnrichedTextInput, markdownStyles } from "enriched-text-input";
 
-const customStyles = [
-	{
-		name: "comment",
-		opening: null,
-		closing: null,
-		render: Comment
-	}
-];
+function App() {
+	const customStyles = [
+		{
+			name: "comment",
+			opening: null,
+			closing: null,
+			render: Comment
+		}
+	];
 
-<EnrichedTextInput
-	stylePattrns={[...markdownStyles, ...customStyles]}
-/>
+	return (
+		<EnrichedTextInput
+			stylePattrns={[...markdownStyles, ...customStyles]}
+		/>
+	);
+}
 ```
 
 ## Applying styles
